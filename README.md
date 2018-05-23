@@ -2,6 +2,84 @@
 an irc bot.
 
 ## how to write modules
+```csharp
+// must inherit from the Noye.Module abstract class
+public class MyModule: Module {
+  private readonly string friend;
+
+  // this ctor is required
+  public MyModule(INoye noye): base(noye) {
+    // you can do any setup here
+
+    // such as loading a configuration
+    var config = ModuleConfig.Get<MyModuleConfig>();
+    friend = config.friend;
+
+    // if it cannot successfully be loaded then
+    // throw new CreationException();
+  }
+
+  // this is required, this is where you register your "handlers"
+  public override void Register() {
+    // any number of Command, Passive and Events can be registered here.
+
+    // this is a command, which users trigger
+    Noye.Command("hello", async env => {
+      // when "!hello world" is seen
+      if (env.Param == "world") {
+        await Noye.Say(env, "indeed"); // => sends a message to #test with "indeed"
+      }
+
+      // when just "!hello" is seen
+      if (env.Param == null) {
+        await Noye.Reply(env, "hi!"); // => sends a message to #test with "testuser: hi!"
+      }
+    });
+
+    // this is a passive, it uses a regex to match
+    Noye.Passive(@"(?P<num>\d+)", Sum);
+
+    // this is an event, it uses a raw event to get a raw message
+    Noye.Event("KICK", async msg => {
+      // this kicks anyone who kicks `this.friend` from the current channel. 
+
+      // 0 is the channel, 1 is the person being kicked.
+      if (msg.Parameters[1] == friend) {
+        await Noye.Raw($"KICK {msg.Parameters[0]} {msg.Prefix.Split('!').First()} :don't do that");
+        // this provides a "KICK #test_channel some_person :don't do that" message
+      }
+    });
+  }
+
+
+  // a method used in the passive handler to sum all numbers found with the regex
+  private async Task Sum(Envelope env) {
+    // this isn't really needed here
+    if (!env.Matches.Has("num")) {
+      return;
+    }
+
+    var sum = 0;
+    // get all of the 'num' matches (a List<string>.)
+    foreach (var num in env.Matches.Get("num")) {
+      if (int.TryParse(num, out var n)) {
+        sum += n;
+      }
+    }
+
+    if(env.Matches.Get("num").Count > 0) {
+      await Noye.Reply(env, $"I like to sum numbers: {sum}");
+    }
+  }
+
+  // this is optional
+  protected override void Dispose(bool disposing) {
+    base.Dispose(disposing);
+    // you can dispose if anything you need here
+  }
+}
+```
+
 - modules are classes that inherit from the `Noye.Module` abstract class
 - `void Register()` must be overridden. this is where modules 'wire' up their interactions.
 - the `Module(INoye noye)` constructor will store it in the base class. this can be used for interacting with the bot
