@@ -24,6 +24,11 @@
 
         public override void Register() {
             var host = Noye.GetHostAddress();
+            
+            Noye.Command("pictures", async env => {
+                var list = pictures.Select(p => $"!{p.Key}");
+                await Noye.Reply(env, string.Join(" ", list));
+            });
 
             foreach (var kv in pictures) {
                 Noye.Command(kv.Value.Command, async env => {
@@ -135,8 +140,7 @@
                         Headers = {
                             ["ETag"] = fi.LastWriteTimeUtc.Ticks.ToString("x"),
                             ["Last-Modified"] = fi.LastWriteTimeUtc.ToString("R"),
-                            ["Content-Disposition"] =
-                                $"inline; filename=\"{Sanitize(Path.GetFileName(item.Filepath))}\"",
+                            // ["Content-Disposition"] = $"inline; filename=\"{Sanitize(Path.GetFileName(item.Filepath))}\"",
                             ["Content-Length"] = $"{fi.Length}"
                         },
                         Contents = stream => {
