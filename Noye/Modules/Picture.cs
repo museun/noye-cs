@@ -24,7 +24,7 @@
 
         public override void Register() {
             var host = Noye.GetHostAddress();
-            
+
             Noye.Command("pictures", async env => {
                 var list = pictures.Select(p => $"!{p.Key}");
                 await Noye.Reply(env, string.Join(" ", list));
@@ -140,7 +140,8 @@
                         Headers = {
                             ["ETag"] = fi.LastWriteTimeUtc.Ticks.ToString("x"),
                             ["Last-Modified"] = fi.LastWriteTimeUtc.ToString("R"),
-                            // ["Content-Disposition"] = $"inline; filename=\"{Sanitize(Path.GetFileName(item.Filepath))}\"",
+                            ["Content-Disposition"] =
+                                $"inline; filename*=UTF-8''{HttpUtility.UrlPathEncode(Path.GetFileName(item.Filepath))}",
                             ["Content-Length"] = $"{fi.Length}"
                         },
                         Contents = stream => {
@@ -149,7 +150,6 @@
                             }
                         }
                     };
-
                     return resp;
                 }
 
@@ -157,13 +157,6 @@
                 error.StatusCode = HttpStatusCode.BadRequest;
                 return error;
             };
-        }
-
-        private static string Sanitize(string name) {
-            var chars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
-            var str = string.Format(@"([{0}]*\.+$)|([{0}]+)", chars);
-
-            return Regex.Replace(name, str, "_").Replace("\r", "").Replace("\n", "");
         }
     }
 }
