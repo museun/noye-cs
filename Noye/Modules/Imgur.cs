@@ -53,12 +53,14 @@
             else if (!string.IsNullOrWhiteSpace(name)) {
                 sb.Append($"{name}");
             }
+
             if (!string.IsNullOrWhiteSpace(album.section)) {
                 sb.Append($" ({album.section})");
             }
 
             await Noye.Say(env, sb.ToString());
         }
+
 
         private async Task LookupAlbum(Envelope env, string id) {
             var json = await httpClient.GetAnonymous($"https://api.imgur.com/3/album/{id}", new {
@@ -75,9 +77,11 @@
             if (json?.data == null) {
                 return;
             }
+
             var album = json.data;
 
-            if ((string.IsNullOrWhiteSpace(album.title) || string.IsNullOrWhiteSpace(album.description)) && album.images_count == 1) {
+            if ((string.IsNullOrWhiteSpace(album.title) || string.IsNullOrWhiteSpace(album.description)) &&
+                album.images_count == 1) {
                 return;
             }
 

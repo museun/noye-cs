@@ -1,4 +1,5 @@
 ﻿namespace Noye {
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
     using Autofac;
@@ -33,7 +34,8 @@
         public async Task Emote(Envelope env, string msg) => await proto.Action(env.Target, msg);
         public async Task Raw(string data) => await proto.Send(data);
 
-        public string GetHostAddress() => address;
+        public string GetHostAddress() => Debugger.IsAttached ? "localhost:2222" : address;
+
         public T Resolve<T>() => container.Resolve<T>();
 
         public async Task<bool> CheckAuth(Envelope env) {

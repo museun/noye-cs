@@ -118,8 +118,7 @@
                         CreateAutomatically = true
                     }
                 });
-
-
+            
             Log.Information($"starting http server on {conf.Bind}:{conf.Port}");
             host.Start();
         }

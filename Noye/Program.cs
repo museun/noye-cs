@@ -5,6 +5,7 @@
     using Modules;
     using Nancy.Bootstrapper;
     using Nancy.Bootstrappers.Autofac;
+    using Nancy.Diagnostics;
     using Nett;
     using Serilog;
 
@@ -14,6 +15,9 @@
         public NancyBootstrapper(IContainer container) {
             this.container = container;
         }
+
+        //protected override DiagnosticsConfiguration DiagnosticsConfiguration =>
+        //    new DiagnosticsConfiguration {Password = "password"};
 
         protected override ILifetimeScope GetApplicationContainer() => container;
 
@@ -30,7 +34,7 @@
     public class NoyeModule : Autofac.Module {
         protected override void Load(ContainerBuilder builder) {
             builder.RegisterType<MemoryServe>().SingleInstance();
-            builder.RegisterType<SayumiServe>().SingleInstance();
+            builder.RegisterType<PictureServe>().SingleInstance();
             builder.RegisterType<NancyBootstrapper>().SingleInstance();
             builder.RegisterType<HttpServer>().SingleInstance();
         }

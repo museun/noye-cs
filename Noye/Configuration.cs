@@ -1,4 +1,5 @@
 ﻿namespace Noye {
+    using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
     using Nett;
@@ -50,7 +51,7 @@
         public SendAnywhereConfig SendAnywhere { get; internal set; } = new SendAnywhereConfig();
         public ImgurConfig Imgur { get; internal set; } = new ImgurConfig();
         public TwitchConfig Twitch { get; internal set; } = new TwitchConfig();
-        public SayumiConfig Sayumi { get; internal set; } = new SayumiConfig();
+        public PicturesConfig Pictures { get; internal set; } = new PicturesConfig();
 
         public static T Get<T>() where T : class, IModuleConfig {
             var conf = Configuration.Load();
@@ -84,9 +85,14 @@
 
     public class TwitchConfig : ApiKeyConfig { }
 
-    public class SayumiConfig : IModuleConfig {
-        public string Directory { get; set; } = "sayumi";
-        public int Chance { get; set; } = 20;
-        public string[] BannedChannels { get; set; } = default(string[]);
+    public class PicturesConfig : IModuleConfig {
+        public Dictionary<string, Item> Directorties { get; internal set; } = default(Dictionary<string, Item>);
+
+        public class Item {
+            public string Directory { get; set; } = default(string);
+            public string Command { get; set; } = default(string);
+            public int Chance { get; set; } = 20;
+            public string[] BannedChannels { get; set; } = default(string[]);
+        }
     }
 }
