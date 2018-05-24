@@ -4,22 +4,42 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Text.RegularExpressions;
     using System.Web;
     using Nancy;
 
     public class PictureModule : Module {
-        private readonly IReadOnlyDictionary<string, PicturesConfig.Item> pictures;
+        private readonly Dictionary<string, IReadOnlyList<string>> cache =
+            new Dictionary<string, IReadOnlyList<string>>();
+
+        private readonly Dictionary<string, ItemContext> pictures = 
+            new Dictionary<string, ItemContext>();
+
         private readonly Random random = new Random(DateTime.Now.Millisecond);
+        private readonly IReadOnlyList<FileSystemWatcher> watchers;
 
         public PictureModule(INoye noye) : base(noye) {
-            var conf = ModuleConfig.Get<PicturesConfig>();
-            pictures = conf.Directorties;
-
+            var list = new List<FileSystemWatcher>();
             var ps = Noye.Resolve<PictureServe>();
-            foreach (var p in pictures) {
+            var conf = ModuleConfig.Get<PicturesConfig>();
+
+            foreach (var p in conf.Directorties) {
+                var ctx = new ItemContext {Item = p.Value};
+                ctx.Item.Directory = Path.GetFullPath(ctx.Item.Directory);
+
+                var watcher = new FileSystemWatcher(ctx.Item.Directory);
+                watcher.Changed += (s, e) => { ctx.With(self => self.Dirty = true); };
+                watcher.Created += (s, e) => { ctx.With(self => self.Dirty = true); };
+                watcher.Deleted += (s, e) => { ctx.With(self => self.Dirty = true); };
+                watcher.Renamed += (s, e) => { ctx.With(self => self.Dirty = true); };
+                watcher.EnableRaisingEvents = true;
+
+                list.Add(watcher);
+
+                pictures[p.Key] = ctx;
                 ps.mapping.GetOrAdd(p.Key, new InnerServe());
             }
+
+            watchers = list;
         }
 
         public override void Register() {
@@ -31,8 +51,8 @@
             });
 
             foreach (var kv in pictures) {
-                Noye.Command(kv.Value.Command, async env => {
-                    if (env.Param == "list") {
+                Noye.Command(kv.Value.Item.Command, async env => {
+                    if (env.Param == "list" || env.Param == "chance") {
                         return;
                     }
 
@@ -44,7 +64,39 @@
                     }
                 });
 
-                Noye.Command($"{kv.Value.Command} list", async env => {
+                Noye.Event("PRIVMSG", async message => {
+                    var chan = message.Parameters[0];
+                    if (kv.Value.Item.BannedChannels.Any(e => e == chan)) {
+                        return;
+                    }
+
+                    if (random.Next(0, kv.Value.Item.Chance) == 0) {
+                        var file = SelectFileFor(kv.Value);
+                        var ps = Noye.Resolve<PictureServe>();
+                        if (ps.mapping.TryGetValue(kv.Key, out var serve)) {
+                            var id = serve.Store(new PictureServe.Item(file));
+                            await Noye.Raw($"PRIVMSG {chan} :http://{host}/{kv.Key}/{id}");
+                        }
+                    }
+                });
+
+                Noye.Command($"{kv.Value.Item.Command} chance", async env => {
+                    if (!await Noye.CheckAuth(env)) {
+                        return;
+                    }
+
+                    if (int.TryParse(env.Param, out var ch)) {
+                        var old = kv.Value.Item.Chance;
+                        kv.Value.With(self => self.Item.Chance = ch);
+
+                        await Noye.Reply(env, $"changed the chance to 1/{ch} from 1/{old}");
+                        return;
+                    }
+
+                    await Noye.Reply(env, $"current chance: 1/{kv.Value.Item.Chance}");
+                });
+
+                Noye.Command($"{kv.Value.Item.Command} list", async env => {
                     if (!await Noye.CheckAuth(env)) {
                         return;
                     }
@@ -57,26 +109,17 @@
                         await Noye.Raw($"PRIVMSG {env.Sender} :http://{host}/s/{id}");
                     }
                 });
-
-                Noye.Event("PRIVMSG", async message => {
-                    var chan = message.Parameters[0];
-                    if (kv.Value.BannedChannels.Any(e => e == chan)) {
-                        return;
-                    }
-
-                    if (random.Next(0, kv.Value.Chance) == 0) {
-                        var file = SelectFileFor(kv.Value);
-                        var ps = Noye.Resolve<PictureServe>();
-                        if (ps.mapping.TryGetValue(kv.Key, out var serve)) {
-                            var id = serve.Store(new PictureServe.Item(file));
-                            await Noye.Raw($"PRIVMSG {chan} :http://{host}/{kv.Key}/{id}");
-                        }
-                    }
-                });
             }
         }
 
-        private string SelectFileFor(PicturesConfig.Item pic) {
+        protected override void Dispose(bool disposing) {
+            base.Dispose(disposing);
+            foreach (var watcher in watchers) {
+                watcher.Dispose();
+            }
+        }
+
+        private IReadOnlyList<string> GetFiles(string directory) {
             var exts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
                 ".jpg",
                 ".jpeg",
@@ -84,16 +127,48 @@
                 ".png"
             };
 
-            var list = Directory.EnumerateFiles(pic.Directory, "*.*", SearchOption.AllDirectories)
-                .Where(e => exts.Contains(Path.GetExtension(e))).ToList();
+            return Directory
+                .EnumerateFiles(directory, "*.*", SearchOption.AllDirectories)
+                .Where(e => exts.Contains(Path.GetExtension(e)))
+                .ToList();
+        }
+
+        private string SelectFileFor(ItemContext pic) {
+            IReadOnlyList<string> list;
+            if (pic.Dirty || !cache.ContainsKey(pic.Item.Directory)) {
+                list = GetFiles(pic.Item.Directory);
+                if (cache.ContainsKey(pic.Item.Directory)) {
+                    cache[pic.Item.Directory] = list;
+                }
+                else {
+                    cache.Add(pic.Item.Directory, list);
+                }
+
+                pic.With(self => self.Dirty = false);
+            }
+            else {
+                list = cache[pic.Item.Directory];
+            }
 
             return list[random.Next(list.Count)];
         }
 
-        private IEnumerable<string> GetPreviousFor(InnerServe inner) {
-            foreach (var prev in inner.List()) {
+        private static IEnumerable<string> GetPreviousFor(InnerServe inner) {
+            foreach (var prev in inner.List().OrderBy(e => e.Value.DeleteAt)) {
                 var time = ((DateTimeOffset) prev.Value.DeleteAt).ToUnixTimeSeconds();
                 yield return $"{prev.Key}\t{time}\t{prev.Value.Filepath}";
+            }
+        }
+
+        private class ItemContext {
+            private readonly object locker = new object();
+            public PicturesConfig.Item Item { get; set; }
+            public bool Dirty { get; internal set; }
+
+            public void With(Action<ItemContext> fn) {
+                lock (locker) {
+                    fn(this);
+                }
             }
         }
 
@@ -128,7 +203,6 @@
 
                     return null;
                 }).FirstOrDefault();
-
                 if (serve == null) {
                     return new Response {StatusCode = HttpStatusCode.BadRequest};
                 }
