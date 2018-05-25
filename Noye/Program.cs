@@ -5,7 +5,6 @@
     using Modules;
     using Nancy.Bootstrapper;
     using Nancy.Bootstrappers.Autofac;
-    using Nancy.Diagnostics;
     using Nett;
     using Serilog;
 

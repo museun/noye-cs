@@ -11,7 +11,7 @@
         private readonly Dictionary<string, IReadOnlyList<string>> cache =
             new Dictionary<string, IReadOnlyList<string>>();
 
-        private readonly Dictionary<string, ItemContext> pictures = 
+        private readonly Dictionary<string, ItemContext> pictures =
             new Dictionary<string, ItemContext>();
 
         private readonly Random random = new Random(DateTime.Now.Millisecond);
@@ -23,14 +23,14 @@
             var conf = ModuleConfig.Get<PicturesConfig>();
 
             foreach (var p in conf.Directorties) {
-                var ctx = new ItemContext {Item = p.Value};
+                var ctx = new ItemContext {Item = p.Value, Name = p.Key};
                 ctx.Item.Directory = Path.GetFullPath(ctx.Item.Directory);
 
                 var watcher = new FileSystemWatcher(ctx.Item.Directory);
-                watcher.Changed += (s, e) => { ctx.With(self => self.Dirty = true); };
-                watcher.Created += (s, e) => { ctx.With(self => self.Dirty = true); };
-                watcher.Deleted += (s, e) => { ctx.With(self => self.Dirty = true); };
-                watcher.Renamed += (s, e) => { ctx.With(self => self.Dirty = true); };
+                watcher.Changed += (s, e) => ctx.With(self => self.Dirty = true);
+                watcher.Created += (s, e) => ctx.With(self => self.Dirty = true);
+                watcher.Deleted += (s, e) => ctx.With(self => self.Dirty = true);
+                watcher.Renamed += (s, e) => ctx.With(self => self.Dirty = true);
                 watcher.EnableRaisingEvents = true;
 
                 list.Add(watcher);
@@ -52,7 +52,8 @@
 
             foreach (var kv in pictures) {
                 Noye.Command(kv.Value.Item.Command, async env => {
-                    if (env.Param == "list" || env.Param == "chance") {
+                    // TODO write a command type so this doesn't have be done here
+                    if (env.Param != null && (env.Param == "list" || env.Param.StartsWith("chance"))) {
                         return;
                     }
 
@@ -90,6 +91,11 @@
                         kv.Value.With(self => self.Item.Chance = ch);
 
                         await Noye.Reply(env, $"changed the chance to 1/{ch} from 1/{old}");
+
+                        var conf = Configuration.Load();
+                        conf.Module.Pictures.Directorties[kv.Key].Chance = ch;
+                        Configuration.Save(conf);
+
                         return;
                     }
 
@@ -162,6 +168,8 @@
 
         private class ItemContext {
             private readonly object locker = new object();
+
+            public string Name { get; internal set; }
             public PicturesConfig.Item Item { get; set; }
             public bool Dirty { get; internal set; }
 
