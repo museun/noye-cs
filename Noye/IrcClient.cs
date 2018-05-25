@@ -61,6 +61,7 @@
 
         public void Dispose() {
             cts.Cancel();
+            client.Close();
             client?.Dispose();
             writer?.Dispose();
         }
@@ -76,6 +77,9 @@
                     await writer.WriteAsync(line);
                 }
                 catch (ObjectDisposedException) { }
+                catch (Exception ex) {
+                    Log.Error(ex, "unexpected exception in Send");
+                }
             }
 
             await writer.FlushAsync();
@@ -83,9 +87,13 @@
 
         public IEnumerable<Message> YieldMessages() {
             var reader = new StreamReader(client.GetStream());
-            while (!reader.EndOfStream) {
+            while (!cts.IsCancellationRequested && !reader.EndOfStream) {
                 string line;
                 try {
+                    if (cts.IsCancellationRequested) {
+                        yield break;
+                    }
+
                     line = reader.ReadLine();
                     if (string.IsNullOrWhiteSpace(line)) {
                         yield break;
@@ -127,9 +135,16 @@
         }
 
         public async Task Close() {
-            await Send("QUIT :bye");
-            client.Close();
-            Dispose();
+            var tasks = new[] {
+                Send("QUIT :bye"),
+                Task.Run(() => {
+                    cts.Cancel();
+                    client.Close();
+                    client?.Dispose();
+                    writer?.Dispose();
+                })
+            };
+            await Task.WhenAll(tasks);
         }
 
         public class Config {
