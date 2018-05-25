@@ -41,7 +41,7 @@
                 return;
             }
 
-            var album = json?.data;
+            var album = json.data;
             if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(album.title)) {
                 return;
             }
@@ -91,7 +91,7 @@
             }
 
             if (!string.IsNullOrWhiteSpace(album.title)) {
-                sb.Append($"{album.title} |");
+                sb.Append($"{album.title} | ");
             }
 
             if (!string.IsNullOrWhiteSpace(album.description)) {
