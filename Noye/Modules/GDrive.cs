@@ -11,7 +11,13 @@
         }
 
         public override void Register() {
-            Noye.Passive(@".*?drive\.google\.com\/.*?\/(?<id>[A-Za-z0-9]{33})\/?", async env => {
+            Noye.Passive(@".*?drive\.google\.com\/.*?\/(?<id>[A-Za-z0-9_-]{33})\/?", async env => {
+                foreach (var id in env.Matches.Get("id")) {
+                    await LookupLink(env, id);
+                }
+            });
+
+            Noye.Passive(@".*?drive\.google\.com\/uc.+?id=(?<id>[A-Za-z0-9_-]{33})&?", async env => {
                 foreach (var id in env.Matches.Get("id")) {
                     await LookupLink(env, id);
                 }
@@ -38,7 +44,8 @@
             sb.Append($"[{resp.fileSize.AsFileSize()}] {resp.title}");
             if (resp.videoMediaMetadata != null) {
                 var time = TimeSpan.FromMilliseconds(resp.videoMediaMetadata.durationMillis).StripMilliseconds();
-                sb.Append($" | {resp.videoMediaMetadata.width}x{resp.videoMediaMetadata.height} · {time.AsShortTime()}");
+                sb.Append(
+                    $" | {resp.videoMediaMetadata.width}x{resp.videoMediaMetadata.height} · {time.AsShortTime()}");
             }
 
             await Noye.Say(env, sb.ToString());
