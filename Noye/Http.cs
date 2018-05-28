@@ -26,9 +26,10 @@
     }
 
     public abstract class AbstractServe<T> : IDisposable, IServe<T> where T : class, IItem {
-        private static readonly Random rand = new Random(DateTime.Now.Millisecond);
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
         private readonly TimeSpan delay = TimeSpan.FromSeconds(1 * 30); // every 30 seconds do a sweep
+        private readonly Random rand = new Random(DateTime.Now.Millisecond);
+
         protected readonly ConcurrentDictionary<string, T> store = new ConcurrentDictionary<string, T>();
 
         protected AbstractServe() {
@@ -118,7 +119,7 @@
                         CreateAutomatically = true
                     }
                 });
-            
+
             Log.Information($"starting http server on {conf.Bind}:{conf.Port}");
             host.Start();
         }

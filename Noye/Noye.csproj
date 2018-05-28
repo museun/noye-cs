@@ -98,6 +98,7 @@
     <Compile Include="Modules\Builtin.cs" />
     <Compile Include="Modules\BigFile.cs" />
     <Compile Include="Module.cs" />
+    <Compile Include="Modules\GDrive.cs" />
     <Compile Include="Modules\Gfycat.cs" />
     <Compile Include="Modules\Imgur.cs" />
     <Compile Include="Modules\Instagram.cs" />

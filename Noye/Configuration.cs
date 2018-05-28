@@ -48,6 +48,7 @@
 
     public class ModuleConfig {
         public YoutubeConfig Youtube { get; internal set; } = new YoutubeConfig();
+        public GDriveConfig GDrive { get; internal set; } = new GDriveConfig();
         public SendAnywhereConfig SendAnywhere { get; internal set; } = new SendAnywhereConfig();
         public ImgurConfig Imgur { get; internal set; } = new ImgurConfig();
         public TwitchConfig Twitch { get; internal set; } = new TwitchConfig();
@@ -61,7 +62,7 @@
             return field.GetValue(conf.Module) as T;
         }
     }
-
+    
     public interface IModuleConfig { }
 
     public class ApiKeyConfig : IModuleConfig {
@@ -78,6 +79,8 @@
     }
 
     public class YoutubeConfig : ApiKeyConfig { }
+
+    public class GDriveConfig : ApiKeyConfig { }
 
     public class SendAnywhereConfig : ApiKeyConfig { }
 
