@@ -1,6 +1,7 @@
 ﻿namespace Noye {
     using System;
     using System.IO;
+    using System.Runtime.InteropServices;
     using Autofac;
     using Modules;
     using Nancy.Bootstrapper;
@@ -40,7 +41,12 @@
     }
 
     public static class Program {
+        [DllImport("kernel32.dll")]
+        private static extern uint SetErrorMode(uint mode);
+
         private static void Main(string[] args) {
+            SetErrorMode(0x0002); // SEM_NOGPFAULTERRORBOX
+
             const string CONFIG_FILE = "noye.toml";
             if (!File.Exists(CONFIG_FILE)) {
                 new LoggerConfiguration().WriteTo.Console()
