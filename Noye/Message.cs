@@ -25,15 +25,11 @@
             if (args.Length > 1) {
                 Parameters = args.Skip(1).ToList();
             }
-
-            if (string.IsNullOrWhiteSpace(Data)) {
-                Data = " "; // if no data was parsed, give it a 0x20 just for sanity reasons
-            }
         }
 
         public string Prefix { get; set; }
         public string Command { get; set; }
         public List<string> Parameters { get; set; } = new List<string>();
-        public string Data { get; set; }
+        public string Data { get; set; } = ""; // make sure its atleast an empty string, for sanity reasons.
     }
 }
