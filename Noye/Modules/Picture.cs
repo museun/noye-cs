@@ -26,6 +26,10 @@
                 var ctx = new ItemContext {Item = p.Value, Name = p.Key};
                 ctx.Item.Directory = Path.GetFullPath(ctx.Item.Directory);
 
+                if (!Directory.Exists(ctx.Item.Directory)) {
+                    continue;
+                }
+
                 var watcher = new FileSystemWatcher(ctx.Item.Directory);
                 watcher.Changed += (s, e) => ctx.With(self => self.Dirty = true);
                 watcher.Created += (s, e) => ctx.With(self => self.Dirty = true);

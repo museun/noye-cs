@@ -94,7 +94,7 @@
                         yield break;
                     }
 
-                    line = reader.ReadLine();
+                    line = reader.ReadLine()?.Trim();
                     if (string.IsNullOrWhiteSpace(line)) {
                         yield break;
                     }

@@ -25,6 +25,10 @@
             if (args.Length > 1) {
                 Parameters = args.Skip(1).ToList();
             }
+
+            if (string.IsNullOrWhiteSpace(Data)) {
+                Data = " "; // if no data was parsed, give it a 0x20 just for sanity reasons
+            }
         }
 
         public string Prefix { get; set; }
