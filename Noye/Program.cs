@@ -68,6 +68,11 @@
                 ).MinimumLevel.Is(config.LogLevel);
             Log.Logger = logconf.CreateLogger();
 
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => {
+                var ex = e.ExceptionObject as Exception;
+                Log.Error(ex, "uncaught exception leaving main.");
+            };
+
             try {
                 new Noye(config).Run();
             }
