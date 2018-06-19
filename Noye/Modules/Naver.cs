@@ -1,4 +1,5 @@
 ﻿namespace Noye.Modules {
+    using System;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
@@ -47,6 +48,8 @@
             var parser = new HtmlParser();
             var dom = parser.Parse(resp);
             var desc = dom.QuerySelector("meta[property='og:title']").GetAttribute("content");
+            desc = desc.Substring(0,desc.LastIndexOf(":", StringComparison.Ordinal)).Trim();
+            desc += $" | http://channels.vlive.tv/{id}";
 
             if (id.StartsWith("E")) {
                 // these seem to be paid channels
