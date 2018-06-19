@@ -3,12 +3,10 @@
     using System.Text.RegularExpressions;
 
     public class Instagram : Module {
-        private readonly Regex displayRegex = new Regex(
-            @"""full_name"":\s?""(?<name>.*?)""",
+        private readonly Regex displayRegex = new Regex(@"""full_name"":\s?""(?<name>.*?)""",
             RegexOptions.Compiled | RegexOptions.Singleline);
 
-        private readonly Regex nameRegex = new Regex(
-            "<meta content=\".*?\\s\\((?<name>@.*?)\\)\\s",
+        private readonly Regex nameRegex = new Regex("<meta content=\".*?\\s\\((?<name>@.*?)\\)\\s",
             RegexOptions.Compiled | RegexOptions.Singleline);
 
         public Instagram(INoye noye) : base(noye) { }
@@ -17,12 +15,15 @@
             Noye.Passive(@"(?<url>(?:www|https?)?instagram\.com\/p\/[^\s]+)", async env => {
                 foreach (var url in env.Matches.Get("url")) {
                     var body = await httpClient.GetStringAsync("https://" + url);
-                    var title = FixIt(displayRegex.Match(body).Groups["name"].Value);
+                    var display = FixIt(displayRegex.Match(body).Groups["name"].Value);
                     var name = FixIt(nameRegex.Match(body).Groups["name"].Value);
-
-                    await Noye.Say(env, !string.IsNullOrWhiteSpace(title)
-                        ? $"{title} ({name})"
-                        : $"{name}");
+                    
+                    if (string.IsNullOrWhiteSpace(display)) {
+                        await Noye.Say(env, $"{name}");
+                    }
+                    else {
+                        await Noye.Say(env, $"{display} ({name})");
+                    }
                 }
             });
         }

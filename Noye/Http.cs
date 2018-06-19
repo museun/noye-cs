@@ -213,6 +213,10 @@
     }
 
     public class HttpClient : System.Net.Http.HttpClient {
+        public HttpClient() {}
+
+        public HttpClient(HttpMessageHandler handler) : base(handler) { }
+
         public async Task<T> GetAnonymous<T>(HttpRequestMessage req, T type) {
             var resp = await SendAsync(req);
             var json = await resp.Content.ReadAsStringAsync();

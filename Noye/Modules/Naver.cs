@@ -2,6 +2,7 @@
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using AngleSharp.Extensions;
     using AngleSharp.Parser.Html;
 
     public class Naver : Module {
@@ -14,18 +15,10 @@
         public Naver(INoye noye) : base(noye) { }
 
         public override void Register() {
-            Noye.Passive(@"vlive.*\/(?<id>\d+)[\/|\?]?", async env => {
+            Noye.Passive(@"vlive\.tv\/(.*?)\/(?<id>\d+)\/?", async env => {
                 foreach (var id in env.Matches.Get("id")) {
-                    var vplus = await IsVPlus(id);
-                    var title = await GetTitle("http://www.vlive.tv/video/" + id, VLIVE_RE);
-
-                    var sb = new StringBuilder();
-                    if (vplus) {
-                        sb.Append("[V+] ");
-                    }
-
-                    sb.Append(title);
-                    await Noye.Say(env,  sb.ToString());
+                    var vlive = await GetVLiveInfo(id);
+                    await Noye.Say(env, vlive.ToString());
                 }
             });
 
@@ -37,12 +30,36 @@
             });
         }
 
-        private async Task<bool> IsVPlus(string id) {
+        private async Task<VLiveInfo> GetVLiveInfo(string id) {
             var resp = await httpClient.GetStringAsync("http://m.vlive.tv/video/" + id);
             var parser = new HtmlParser();
             var dom = parser.Parse(resp);
-            var el = dom.QuerySelector("#wrap.vproduct");
-            return el != null;
+            var vplus = dom.QuerySelector("#wrap.vproduct") != null || dom.QuerySelector("div.vplay_chplus") != null;
+
+            if (!vplus) {
+                return new VLiveInfo {
+                    VPlus = false,
+                    Title = dom.QuerySelector("div.vplay_info > a.tit").Text().Trim(),
+                    Views = dom.QuerySelector("span.icon_play > span.tx").Text().Trim(),
+                    UploadAt = dom.QuerySelector("div.noti > span.txt").Text().Trim()
+                };
+            }
+
+            var info = new VLiveInfo {
+                VPlus = true,
+                Title = dom.QuerySelector("div.pcard_large_txt_box > h2")?.Text().Trim(),
+                Duration = dom.QuerySelector("div.pcard_large_sub_txt > span:nth-child(1)")?.Text().Trim(),
+                UploadAt = dom.QuerySelector("div.pcard_large_sub_txt > span:nth-child(2)")?.Text().Trim()
+            };
+
+            if (string.IsNullOrWhiteSpace(info.Title)) {
+                info.Title = dom.QuerySelector("div.vplay_info > a.tit")?.Text().Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(info.UploadAt)) {
+                info.UploadAt = dom.QuerySelector("div.noti > span.txt")?.Text().Trim();
+            }
+            return info;
         }
 
         private async Task<string> GetTitle(string url, Regex re) {
@@ -52,6 +69,37 @@
 
             var match = re.Match(Encoding.UTF8.GetString(buf));
             return match.Success ? match.Groups[1].Value.Trim() : null;
+        }
+
+        private struct VLiveInfo {
+            public bool VPlus { get; set; }
+            public string Title { get; set; }
+            public string Views { get; set; }
+            public string Duration { get; set; }
+            public string UploadAt { get; set; }
+
+            public override string ToString() {
+                var sb = new StringBuilder();
+                if (VPlus) {
+                    sb.Append("[V+] ");
+                }
+
+                sb.Append($"{Title}");
+
+                if (VPlus) {
+                    if (!string.IsNullOrWhiteSpace(Duration)) {
+                        sb.Append($" | {Duration}");
+                    }
+                }
+                else {
+                    if (!string.IsNullOrWhiteSpace(Views)) {
+                        sb.Append($" | {Views}");
+                    }
+                }
+
+                sb.Append($" · {UploadAt}");
+                return sb.ToString();
+            }
         }
     }
 }
