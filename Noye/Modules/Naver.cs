@@ -9,7 +9,10 @@
         private readonly Regex NAVER_RE = new Regex("<meta property=\"og:title\" content=\"(.*?)\"",
             RegexOptions.Compiled | RegexOptions.Multiline); // pending changes
 
-        private readonly Regex VLIVE_RE = new Regex("<meta property=\"og:title\" content=\"(.*?)\"",
+        private readonly Regex VFAN_APP_ID_RE = new Regex(@"VFAN_APP_ID\s?=\s?""(?<id>.*?)""",
+            RegexOptions.Compiled | RegexOptions.Multiline);
+
+        private readonly Regex VFAN_APP_RE = new Regex(@"""(?<app>https?:\/\/.*?app\.js\?.*?)\""",
             RegexOptions.Compiled | RegexOptions.Multiline);
 
         public Naver(INoye noye) : base(noye) { }
@@ -22,12 +25,35 @@
                 }
             });
 
+            Noye.Passive(@"channels\.vlive\.tv\/(?<id>.+?)(:?\/|$)", async env => {
+                foreach (var id in env.Matches.Get("id")) {
+                    var vlive = await GetVLiveChannel(id);
+                    if (!string.IsNullOrWhiteSpace(vlive)) {
+                        await Noye.Say(env, vlive);
+                    }
+                }
+            });
+
             Noye.Passive(@"tv\.naver\.com\/v\/(?<id>\d+)\/?", async env => {
                 foreach (var id in env.Matches.Get("id")) {
                     var title = await GetTitle("http://tv.naver.com/v/" + id, NAVER_RE);
                     await Noye.Say(env, title);
                 }
             });
+        }
+
+        private async Task<string> GetVLiveChannel(string id) {
+            var resp = await httpClient.GetStringAsync($"http://channels.vlive.tv/{id}/video");
+            var parser = new HtmlParser();
+            var dom = parser.Parse(resp);
+            var desc = dom.QuerySelector("meta[property='og:title']").GetAttribute("content");
+
+            if (id.StartsWith("E")) {
+                // these seem to be paid channels
+                return $"[V+] {desc}";
+            }
+
+            return desc;
         }
 
         private async Task<VLiveInfo> GetVLiveInfo(string id) {
@@ -39,9 +65,9 @@
             if (!vplus) {
                 return new VLiveInfo {
                     VPlus = false,
-                    Title = dom.QuerySelector("div.vplay_info > a.tit").Text().Trim(),
-                    Views = dom.QuerySelector("span.icon_play > span.tx").Text().Trim(),
-                    UploadAt = dom.QuerySelector("div.noti > span.txt").Text().Trim()
+                    Title = dom.QuerySelector("div.vplay_info > a.tit")?.Text().Trim(),
+                    Views = dom.QuerySelector("span.icon_play > span.tx")?.Text().Trim(),
+                    UploadAt = dom.QuerySelector("div.noti > span.txt")?.Text().Trim()
                 };
             }
 
@@ -59,6 +85,7 @@
             if (string.IsNullOrWhiteSpace(info.UploadAt)) {
                 info.UploadAt = dom.QuerySelector("div.noti > span.txt")?.Text().Trim();
             }
+
             return info;
         }
 
@@ -71,7 +98,7 @@
             return match.Success ? match.Groups[1].Value.Trim() : null;
         }
 
-        private struct VLiveInfo {
+        private class VLiveInfo {
             public bool VPlus { get; set; }
             public string Title { get; set; }
             public string Views { get; set; }
