@@ -3,9 +3,9 @@
     using System.Threading.Tasks;
 
     public interface INoye {
-        Task Say(Envelope env, string data);
-        Task Reply(Envelope env, string data);
-        Task Emote(Envelope env, string msg);
+        Task Say(Envelope env, string data, Context ctx = null);
+        Task Reply(Envelope env, string data, Context ctx = null);
+        Task Emote(Envelope env, string msg, Context ctx = null);
         Task Raw(string data);
 
         void Command(string trigger, Func<Envelope, Task> func);

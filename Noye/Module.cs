@@ -21,6 +21,14 @@
             if (disposing) httpClient.Dispose();
         }
 
+        protected Context WithContext(Envelope env, string msg) =>
+            new Context {
+                Message = msg,
+                Sender = env.Sender,
+                Target = env.Target,
+                Name = GetType().Name
+            };
+
         public class MissingApiKeyException : Exception { }
 
         public class CreationException : Exception { }

@@ -13,7 +13,7 @@
             Noye.Passive(@"(sendanywhe\.re|send-anywhere\.com)/.*?(?<id>[^/]*$)", async env => {
                 var req = $"?device_key={apiKey}&mode=list&start_pos=0&end_pos=30";
 
-                foreach (var id in env.Matches.Get("id")) {
+                await env.TryEach("id", WithContext(env, "couldn't get info for link"), async (id, ctx) => {
                     var info = await httpClient.GetAnonymous(
                         $"https://send-anywhere.com/web/key/inquiry/{id}?device_key={apiKey}", new {
                             key = default(string),
@@ -37,9 +37,9 @@
                     var ts = TimeSpan.FromSeconds(info.expires_time - info.created_time);
                     foreach (var item in list.file.Where(e => e.downloadable)) {
                         var resp = $"[{item.size.AsFileSize()}] {item.name} ({id}, expires in ~{ts.RelativeTime()})";
-                        await Noye.Say(env, resp);
+                        await Noye.Say(env, resp, ctx);
                     }
-                }
+                });
             });
         }
     }

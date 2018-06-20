@@ -85,6 +85,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bot.cs" />
+    <Compile Include="Context.cs" />
     <Compile Include="INoye.cs" />
     <Compile Include="IrcClient.cs" />
     <Compile Include="Configuration.cs" />

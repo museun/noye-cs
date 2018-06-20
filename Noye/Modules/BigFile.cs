@@ -7,13 +7,11 @@
 
         public override void Register() {
             Noye.Passive(PATTERN, async env => {
-                foreach (var link in env.Matches.Get("link")) {
+                await env.TryEach("link", WithContext(env, "filename was empty"), async (link,ctx) => {
                     var headers = await HttpExtensions.GetHeaders(link);
-                    var filename = headers?.ContentDisposition.FileNameStar;
-                    if (!string.IsNullOrWhiteSpace(filename)) {
-                        await Noye.Say(env, filename);
-                    }
-                }
+                    var filename = headers?.ContentDisposition?.FileNameStar;
+                    await Noye.Say(env, filename, ctx);
+                });
             });
         }
     }

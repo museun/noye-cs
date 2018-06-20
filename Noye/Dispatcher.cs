@@ -45,7 +45,11 @@
                 // create the envelope
                 let env = new Envelope(msg, string.IsNullOrWhiteSpace(param) ? null : param)
                 // create the wrapped task
-                select Task.Run(async () => await active.action(env)).ContinueWith(t => {
+                select Task.Run(async () => {
+                        Log.Debug("running action: {trigger}", active.trigger);
+                        await active.action(env);
+                    }
+                ).ContinueWith(t => {
                     t?.Exception?.Flatten().Handle(ex => {
                         Log.Warning(ex, "unhandled exception for {trigger}", active.trigger);
                         return true;
@@ -64,7 +68,10 @@
                 // create the envelople
                 let env = new Envelope(msg, matches: matches)
                 // create the wrapped task
-                select Task.Run(async () => await passive.Action(env)).ContinueWith(t => {
+                select Task.Run(async () => {
+                    Log.Debug("running passive: {pattern}", passive.Pattern);
+                    await passive.Action(env);
+                }).ContinueWith(t => {
                     t?.Exception?.Flatten().Handle(ex => {
                         Log.Warning(ex, "unhandled exception for {pattern}", passive.Pattern.ToString());
                         return true;
@@ -77,7 +84,10 @@
                 // filter matching commands
                 .Where(ev => ev.Command == msg.Command)
                 // then create a list of wrapped tasks
-                .Select(evnt => Task.Run(async () => await evnt.Action(msg)).ContinueWith(t => {
+                .Select(evnt => Task.Run(async () => {
+                    Log.Debug("running event: {event}", evnt.Command);
+                    await evnt.Action(msg);
+                }).ContinueWith(t => {
                     t?.Exception?.Flatten().Handle(ex => {
                         Log.Warning(ex, "unhandled exception for {@msg}", msg);
                         return true;

@@ -144,6 +144,7 @@
                     writer?.Dispose();
                 })
             };
+            Log.Information("closing the irc connection");
             await Task.WhenAll(tasks);
         }
 

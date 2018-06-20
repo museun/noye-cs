@@ -11,21 +11,22 @@
 
         public override void Register() {
             Noye.Passive(@"twitch\.tv\/(?!videos)(?<stream>\w+)", async env => {
-                foreach (var name in env.Matches.Get("stream")) {
-                    await Lookup(env, name);
-                }
+                await env.TryEach("stream", WithContext(env, "cannot find stream"), async (name, ctx) => {
+                    var twitch = await Lookup(name);
+                    await Noye.Say(env, twitch, ctx);
+                });
             });
         }
 
         // @formatter:off
-        private async Task Lookup(Envelope env, string name) {
+        private async Task<string> Lookup( string name) {
             var result = await httpClient.GetAnonymous(getLogin(name), new {
                 users = new[] { new { _id = "", display_name = "", name = "" } }
             });
 
             if (result.users.Length < 1) {
                 // not a valid user
-                return;
+                return null;
             }
 
             var uid = result.users[0]._id;
@@ -34,8 +35,7 @@
             });
 
             if (stream.data.Length < 1) {
-                await Noye.Say(env, $"{name} is offline");
-                return;
+                return $"{name} is offline";
             }
 
             var gid = stream.data[0].game_id;
@@ -49,20 +49,14 @@
             }
 
             var status = stream.data[0].title == "" ? "no status" : stream.data[0].title;
-            await Noye.Say(env, $"{result.users[0].display_name} streaming '{game_name}' -- {status}");
+            return $"{result.users[0].display_name} streaming '{game_name}' -- {status}";
         }
         // @formatter:on
 
-        private static string getLogin(string name) {
-            return "https://api.twitch.tv/kraken/users?login=" + name;
-        }
+        private static string getLogin(string name) => "https://api.twitch.tv/kraken/users?login=" + name;
 
-        private static string getStream(string id) {
-            return "https://api.twitch.tv/helix/streams?user_id=" + id;
-        }
+        private static string getStream(string id) => "https://api.twitch.tv/helix/streams?user_id=" + id;
 
-        private static string getGames(string id) {
-            return "https://api.twitch.tv/helix/games?id=" + id;
-        }
+        private static string getGames(string id) => "https://api.twitch.tv/helix/games?id=" + id;
     }
 }

@@ -12,19 +12,21 @@
 
         public override void Register() {
             Noye.Passive(@"imgur\.com/a/(?<id>.*?(:?\s|$))", async env => {
-                foreach (var id in env.Matches.Get("id")) {
-                    await LookupAlbum(env, id);
-                }
+                await env.TryEach("id", WithContext(env, "cannot lookup imgur album"), async (id, ctx) => {
+                    var album = await LookupAlbum(id);
+                    await Noye.Say(env, album, ctx);
+                });
             });
 
             Noye.Passive(@"i\.imgur\.com\/(?<id>.+?)\.(:?jpg|jpeg|gif|gifv|png)", async env => {
-                foreach (var id in env.Matches.Get("id")) {
-                    await LookupImage(env, id);
-                }
+                await env.TryEach("id", WithContext(env, "cannot lookup imgur image"), async (id, ctx) => {
+                    var image = await LookupImage(id);
+                    await Noye.Say(env, image, ctx);
+                });
             });
         }
 
-        private async Task LookupImage(Envelope env, string id) {
+        private async Task<string> LookupImage(string id) {
             var body = await httpClient.GetStringAsync($"https://imgur.com/{id}");
 
             var parser = new HtmlParser();
@@ -38,12 +40,12 @@
                 }
             });
             if (json?.data == null) {
-                return;
+                return null;
             }
 
             var album = json.data;
             if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(album.title)) {
-                return;
+                return null;
             }
 
             var sb = new StringBuilder();
@@ -58,11 +60,10 @@
                 sb.Append($" ({album.section})");
             }
 
-            await Noye.Say(env, sb.ToString());
+            return sb.ToString();
         }
 
-
-        private async Task LookupAlbum(Envelope env, string id) {
+        private async Task<string> LookupAlbum(string id) {
             var json = await httpClient.GetAnonymous($"https://api.imgur.com/3/album/{id}", new {
                 data = new {
                     title = default(string),
@@ -75,14 +76,14 @@
                 }
             });
             if (json?.data == null) {
-                return;
+                return null;
             }
 
             var album = json.data;
 
             if ((string.IsNullOrWhiteSpace(album.title) || string.IsNullOrWhiteSpace(album.description)) &&
                 album.images_count == 1) {
-                return;
+                return null;
             }
 
             var sb = new StringBuilder();
@@ -106,7 +107,7 @@
                 sb.Append($"({album.section})");
             }
 
-            await Noye.Say(env, sb.ToString());
+            return sb.ToString();
         }
     }
 }

@@ -8,13 +8,14 @@
 
         public override void Register() {
             Noye.Passive(@"(?:gfycat\.com\/(?<id>.+?)\b)", async env => {
-                foreach (var id in env.Matches.Get("id")) {
-                    await LookupItem(env, id);
-                }
+                await env.TryEach("id", WithContext(env, "cannot lookup gfycat item"), async (id, ctx) => {
+                    var item = await LookupItem(id);
+                    await Noye.Say(env, item, ctx);
+                });
             });
         }
 
-        private async Task LookupItem(Envelope env, string id) {
+        private async Task<string> LookupItem(string id) {
             var json = await httpClient.GetStringAsync($"http://gfycat.com/cajax/get/{id}");
             var item = JsonConvert.DeserializeAnonymousType(json, new {
                 gfyItem = new {
@@ -29,7 +30,7 @@
                 }
             })?.gfyItem;
             if (item == null) {
-                return;
+                return null;
             }
 
             var sb = new StringBuilder();
@@ -62,7 +63,7 @@
                 sb.Append(")");
             }
 
-            await Noye.Say(env, sb.ToString());
+            return sb.ToString();
         }
     }
 }

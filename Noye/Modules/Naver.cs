@@ -10,36 +10,28 @@
         private readonly Regex NAVER_RE = new Regex("<meta property=\"og:title\" content=\"(.*?)\"",
             RegexOptions.Compiled | RegexOptions.Multiline); // pending changes
 
-        private readonly Regex VFAN_APP_ID_RE = new Regex(@"VFAN_APP_ID\s?=\s?""(?<id>.*?)""",
-            RegexOptions.Compiled | RegexOptions.Multiline);
-
-        private readonly Regex VFAN_APP_RE = new Regex(@"""(?<app>https?:\/\/.*?app\.js\?.*?)\""",
-            RegexOptions.Compiled | RegexOptions.Multiline);
-
         public Naver(INoye noye) : base(noye) { }
 
         public override void Register() {
             Noye.Passive(@"vlive\.tv\/(.*?)\/(?<id>\d+)\/?", async env => {
-                foreach (var id in env.Matches.Get("id")) {
+                await env.TryEach("id", WithContext(env, "cannot get vlive video"), async (id, ctx) => {
                     var vlive = await GetVLiveInfo(id);
-                    await Noye.Say(env, vlive.ToString());
-                }
+                    await Noye.Say(env, vlive.ToString(), ctx);
+                });
             });
 
             Noye.Passive(@"channels\.vlive\.tv\/(?<id>.+?)(:?\/|$)", async env => {
-                foreach (var id in env.Matches.Get("id")) {
+                await env.TryEach("id", WithContext(env, "cannot get vlive channel"), async (id, ctx) => {
                     var vlive = await GetVLiveChannel(id);
-                    if (!string.IsNullOrWhiteSpace(vlive)) {
-                        await Noye.Say(env, vlive);
-                    }
-                }
+                    await Noye.Say(env, vlive);
+                });
             });
 
             Noye.Passive(@"tv\.naver\.com\/v\/(?<id>\d+)\/?", async env => {
-                foreach (var id in env.Matches.Get("id")) {
+                await env.TryEach("id", WithContext(env, "cannot get naver video"), async (id, ctx) => {
                     var title = await GetTitle("http://tv.naver.com/v/" + id, NAVER_RE);
                     await Noye.Say(env, title);
-                }
+                });
             });
         }
 
@@ -48,7 +40,7 @@
             var parser = new HtmlParser();
             var dom = parser.Parse(resp);
             var desc = dom.QuerySelector("meta[property='og:title']").GetAttribute("content");
-            desc = desc.Substring(0,desc.LastIndexOf(":", StringComparison.Ordinal)).Trim();
+            desc = desc.Substring(0, desc.LastIndexOf(":", StringComparison.Ordinal)).Trim();
             desc += $" | http://channels.vlive.tv/{id}";
 
             if (id.StartsWith("E")) {
@@ -109,6 +101,10 @@
             public string UploadAt { get; set; }
 
             public override string ToString() {
+                if (string.IsNullOrWhiteSpace(Title)) {
+                    return "";
+                }
+
                 var sb = new StringBuilder();
                 if (VPlus) {
                     sb.Append("[V+] ");
