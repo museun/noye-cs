@@ -54,7 +54,7 @@
         public async Task<bool> CheckAuth(Envelope env) {
             var conf = Configuration.Load();
             if (conf.Server.Owners.Contains(env.Sender)) return true;
-            await Emote(env, "lemme check something");
+            await Emote(env, "checks something");
             await Reply(env, "you cannot do that");
             return false;
         }
