@@ -56,7 +56,7 @@
             var start = DateTime.Now;
             Noye.Command(this, "uptime", async env => {
                 var time = DateTime.Now - start;
-                await Noye.Reply(env, $"I've been running for {time.RelativeTime()}");
+                await Noye.Reply(env, time.RelativeTime());
             });
 
             // restart the bot 
