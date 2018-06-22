@@ -8,9 +8,9 @@
         Task Emote(Envelope env, string msg, Context ctx = null);
         Task Raw(string data);
 
-        void Command(string trigger, Func<Envelope, Task> func);
-        void Passive(string pattern, Func<Envelope, Task> func);
-        void Event(string command, Func<Message, Task> func);
+        void Command(Module module, string trigger, Func<Envelope, Task> func);
+        void Passive(Module module, string pattern, Func<Envelope, Task> func);
+        void Event(Module module, string command, Func<Message, Task> func);
 
         Task<bool> CheckAuth(Envelope env);
 

@@ -7,8 +7,8 @@
         public Gfycat(INoye noye) : base(noye) { }
 
         public override void Register() {
-            Noye.Passive(@"(?:gfycat\.com\/(?<id>.+?)\b)", async env => {
-                await env.TryEach("id", WithContext(env, "cannot lookup gfycat item"), async (id, ctx) => {
+            Noye.Passive(this, @"(?:gfycat\.com\/(?<id>.+?)\b)", async env => {
+                await WithContext(env, "cannot lookup gfycat item").TryEach("id", async (id, ctx) => {
                     var item = await LookupItem(id);
                     await Noye.Say(env, item, ctx);
                 });

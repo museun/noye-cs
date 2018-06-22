@@ -7,8 +7,8 @@
         public Vimeo(INoye noye) : base(noye) { }
 
         public override void Register() {
-            Noye.Passive(@"vimeo\.com\/(?<vid>\d+)", async env => {
-                await env.TryEach("vid", WithContext(env, "cannot find video"), async (vid, ctx) => {
+            Noye.Passive(this, @"vimeo\.com\/(?<vid>\d+)", async env => {
+                await WithContext(env, "cannot find video").TryEach("vid", async (vid, ctx) => {
                     var req = new HttpRequestMessage(HttpMethod.Get, $"https://player.vimeo.com/video/{vid}/config");
                     req.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
 

@@ -12,8 +12,8 @@
         public Instagram(INoye noye) : base(noye) { }
 
         public override void Register() {
-            Noye.Passive(@"(?<url>(?:www|https?)?instagram\.com\/p\/[^\s]+)", async env => {
-                await env.TryEach("url", WithContext(env, "cannot find data"), async (url, ctx) => {
+            Noye.Passive(this, @"(?<url>(?:www|https?)?instagram\.com\/p\/[^\s]+)", async env => {
+                await WithContext(env, "cannot find data").TryEach("url", async (url, ctx) => {
                     var body = await httpClient.GetStringAsync("https://" + url);
                     var display = FixIt(displayRegex.Match(body).Groups["name"].Value);
                     var name = FixIt(nameRegex.Match(body).Groups["name"].Value);

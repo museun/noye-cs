@@ -5,6 +5,7 @@
     using System.Net;
     using System.Net.Http;
     using System.Net.Http.Headers;
+    using System.Threading;
     using System.Threading.Tasks;
     using Serilog;
 
@@ -31,8 +32,8 @@
             return data.Substring(begin, end - begin);
         }
 
-        public static async Task TryEach(this Envelope env, string item, Context ctx, Func<string, Context, Task> fn) {
-            var items = env.Matches.Get(item);
+        public static async Task TryEach(this Context ctx, string item, Func<string, Context, Task> fn) {
+            var items = ctx.Envelope.Matches.Get(item);
             if (items.Count == 0) {
                 Log.Warning("({class}) no items found for '{item}'", ctx.Name, item);
                 return;
@@ -59,8 +60,25 @@
                 }, TaskContinuationOptions.OnlyOnFaulted));
             }
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
+    }
+
+    public static class ThreadLocalRandom {
+        private static readonly Random globalRandom = new Random();
+        private static readonly object globalLock = new object();
+        private static readonly ThreadLocal<Random> threadRandom = new ThreadLocal<Random>(NewRandom);
+        public static Random Instance => threadRandom.Value;
+
+        public static Random NewRandom() {
+            lock (globalLock) return new Random(globalRandom.Next());
+        }
+
+        public static int Next() => Instance.Next();
+        public static int Next(int max) => Instance.Next(max);
+        public static int Next(int min, int max) => Instance.Next(min, max);
+        public static double NextDouble() => Instance.NextDouble();
+        public static void NextBytes(byte[] buffer) => Instance.NextBytes(buffer);
     }
 
     public static class Utilities {

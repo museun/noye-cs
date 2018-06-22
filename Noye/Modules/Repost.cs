@@ -1,16 +1,15 @@
 ﻿namespace Noye.Modules {
     using System;
-    using System.Data;
     using System.Data.SQLite;
     using System.Linq;
     using System.Threading.Tasks;
     using Dapper;
 
     public class Repost : Module {
+        private const string connString = "Data Source=noye.db;Version=3;Pooling=True;Max Pool Size=100";
         private static readonly string[] IGNORED = {"twitch.tv"}; // TODO store this in the db
 
-        private readonly IDbConnection
-            db = new SQLiteConnection("Data Source=noye.db;Version=3;Pooling=True;Max Pool Size=100");
+        private SQLiteConnection _connection;
 
         public Repost(INoye noye) : base(noye) {
             const string TABLE = "CREATE TABLE IF NOT EXISTS `links` (" +
@@ -22,17 +21,19 @@
                                  "`ignored` INTEGER," +
                                  "UNIQUE(link, room))";
 
-            db.Execute(TABLE);
+            DB.Execute(TABLE);
         }
 
+        private SQLiteConnection DB => _connection ?? (_connection = new SQLiteConnection(connString));
+
         public override void Register() {
-            Noye.Passive(@"(?<link>(?:www|https?)[^\s]+)", async env => {
-                foreach (var link in env.Matches.Get("link")) {
+            Noye.Passive(this, @"(?<link>(?:www|https?)[^\s]+)", async env => {
+                await WithContext(env, "couldn't get link").TryEach("link", async (link, ctx) => {
                     var msg = await Shame(link, env.Sender, env.Target);
                     if (!string.IsNullOrWhiteSpace(msg)) {
-                        await Noye.Say(env, msg);
+                        await Noye.Say(env, msg, ctx);
                     }
-                }
+                });
             });
         }
 
@@ -97,7 +98,7 @@
 
             var result = await GetLinkFromChannel(link, room);
             if (result != null) {
-                await db.ExecuteAsync(UPDATE, new {
+                await DB.ExecuteAsync(UPDATE, new {
                     link,
                     nick,
                     room,
@@ -108,8 +109,8 @@
                 });
                 return result;
             }
-            
-            await db.ExecuteAsync(CREATE, new {
+
+            await DB.ExecuteAsync(CREATE, new {
                 link,
                 nick,
                 room,
@@ -125,7 +126,7 @@
                                  "WHERE link = @link " +
                                  "AND room = @room";
 
-            var q = await db.QueryAsync<LinkItem>(QUERY, new {room, link});
+            var q = await DB.QueryAsync<LinkItem>(QUERY, new {room, link});
             return q.FirstOrDefault();
         }
 

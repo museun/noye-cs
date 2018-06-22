@@ -10,16 +10,16 @@
 
         public override void Register() {
             // when we get a PING, response a with a PONG
-            Noye.Event("PING", async msg => await Noye.Raw($"PONG {msg.Data}"));
+            Noye.Event(this, "PING", async msg => await Noye.Raw($"PONG {msg.Data}"));
 
             // join any channel we're invited to
-            Noye.Event("INVITE", async msg => await Noye.Raw($"JOIN {msg.Data}"));
+            Noye.Event(this, "INVITE", async msg => await Noye.Raw($"JOIN {msg.Data}"));
 
             // if our nick is in used, append _ to it and try again
-            Noye.Event("433", async msg => await Noye.Raw($"NICK {msg.Parameters[1]}_"));
+            Noye.Event(this, "433", async msg => await Noye.Raw($"NICK {msg.Parameters[1]}_"));
 
             // reclamin our nick if someone spotted with it quits.
-            Noye.Event("QUIT", async msg => {
+            Noye.Event(this, "QUIT", async msg => {
                 var me = Configuration.Load().User.Nickname;
                 if (me == msg.Prefix.Split('!').FirstOrDefault()) {
                     await Noye.Raw($"NICK {me}");
@@ -27,7 +27,7 @@
             });
 
             // auth with Q, and join channels when we finally connect
-            Noye.Event("001", async msg => {
+            Noye.Event(this, "001", async msg => {
                 var conf = Configuration.Load();
                 if (conf.Server.Quakenet != null) {
                     var username = conf.Server.Quakenet.Username;
@@ -43,24 +43,24 @@
             });
 
             // join any requested channel
-            Noye.Command("join", async env => {
+            Noye.Command(this, "join", async env => {
                 if (env.Param != null) {
                     await Noye.Raw($"JOIN {env.Param}");
                 }
             });
 
             // part the current channel
-            Noye.Command("part", async env => await Noye.Raw($"PART {env.Target}"));
+            Noye.Command(this, "part", async env => await Noye.Raw($"PART {env.Target}"));
 
             // get the bots uptime
             var start = DateTime.Now;
-            Noye.Command("uptime", async env => {
+            Noye.Command(this, "uptime", async env => {
                 var time = DateTime.Now - start;
                 await Noye.Reply(env, $"I've been running for {time.RelativeTime()}");
             });
 
             // restart the bot 
-            Noye.Command("restart", async env => {
+            Noye.Command(this, "restart", async env => {
                 if (!await Noye.CheckAuth(env)) {
                     return;
                 }
@@ -74,7 +74,7 @@
             });
 
             // set the respawn relay
-            Noye.Command("respawn", async env => {
+            Noye.Command(this, "respawn", async env => {
                 if (!await Noye.CheckAuth(env)) {
                     return;
                 }
@@ -89,7 +89,7 @@
             });
 
             // simulates a crash.
-            Noye.Command("crash", async env => {
+            Noye.Command(this, "crash", async env => {
                 if (!await Noye.CheckAuth(env)) {
                     return;
                 }
@@ -101,7 +101,7 @@
             });
 
             // send the latest log
-            Noye.Command("send logs", async env => {
+            Noye.Command(this, "send logs", async env => {
                 if (!await Noye.CheckAuth(env)) {
                     return;
                 }

@@ -24,8 +24,8 @@
         }
 
         public override void Register() {
-            Noye.Passive(VideoRegex, async env => await HearVideo(env));
-            Noye.Passive(ChannelRegex, async env => await HearChannel(env));
+            Noye.Passive(this, VideoRegex, async env => await HearVideo(env));
+            Noye.Passive(this, ChannelRegex, async env => await HearChannel(env));
         }
 
         private async Task HearVideo(Envelope env) {

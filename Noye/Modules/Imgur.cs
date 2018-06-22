@@ -11,16 +11,19 @@
         }
 
         public override void Register() {
-            Noye.Passive(@"imgur\.com/a/(?<id>.*?(:?\s|$))", async env => {
-                await env.TryEach("id", WithContext(env, "cannot lookup imgur album"), async (id, ctx) => {
+            Noye.Passive(this, @"imgur\.com/a/(?<id>.*?(:?\s|$))", async env => {
+                await WithContext(env, "cannot lookup imgur album").TryEach("id", async (id, ctx) => {
                     var album = await LookupAlbum(id);
                     await Noye.Say(env, album, ctx);
                 });
             });
 
-            Noye.Passive(@"i\.imgur\.com\/(?<id>.+?)\.(:?jpg|jpeg|gif|gifv|png)", async env => {
-                await env.TryEach("id", WithContext(env, "cannot lookup imgur image"), async (id, ctx) => {
+            Noye.Passive(this, @"i\.imgur\.com\/(?<id>.+?)\.(:?jpg|jpeg|gif|gifv|png)", async env => {
+                await WithContext(env, "cannot lookup imgur image").TryEach("id", async (id, ctx) => {
                     var image = await LookupImage(id);
+                    if (string.IsNullOrWhiteSpace(image)) {
+                        return;
+                    }
                     await Noye.Say(env, image, ctx);
                 });
             });

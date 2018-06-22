@@ -11,15 +11,15 @@
         }
 
         public override void Register() {
-            Noye.Passive(@".*?drive\.google\.com\/.*?\/(?<id>[A-Za-z0-9_-]{33})\/?", async env => {
-                await env.TryEach("id", WithContext(env, "link was empty"), async (id, ctx) => {
+            Noye.Passive(this, @"drive\.google\.com\/.*?\/?(?<id>[A-Za-z0-9_-]{33})\/?", async env => {
+                await WithContext(env, "link was empty").TryEach("id", async (id, ctx) => {
                     var link = await LookupLink(id);
                     await Noye.Say(env, link, ctx);
                 });
             });
 
-            Noye.Passive(@".*?drive\.google\.com\/uc.+?id=(?<id>[A-Za-z0-9_-]{33})&?", async env => {
-                await env.TryEach("id", WithContext(env, "link was empty"), async (id, ctx) => {
+            Noye.Passive(this, @".*?drive\.google\.com\/uc.+?id=(?<id>[A-Za-z0-9_-]{33})&?", async env => {
+                await WithContext(env, "link was empty").TryEach("id", async (id, ctx) => {
                     var link = await LookupLink(id);
                     await Noye.Say(env, link, ctx);
                 });

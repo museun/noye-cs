@@ -13,22 +13,22 @@
         public Naver(INoye noye) : base(noye) { }
 
         public override void Register() {
-            Noye.Passive(@"vlive\.tv\/(.*?)\/(?<id>\d+)\/?", async env => {
-                await env.TryEach("id", WithContext(env, "cannot get vlive video"), async (id, ctx) => {
+            Noye.Passive(this, @"vlive\.tv\/(.*?)\/(?<id>\d+)\/?", async env => {
+                await WithContext(env, "cannot get vlive video").TryEach("id", async (id, ctx) => {
                     var vlive = await GetVLiveInfo(id);
                     await Noye.Say(env, vlive.ToString(), ctx);
                 });
             });
 
-            Noye.Passive(@"channels\.vlive\.tv\/(?<id>.+?)(:?\/|$)", async env => {
-                await env.TryEach("id", WithContext(env, "cannot get vlive channel"), async (id, ctx) => {
+            Noye.Passive(this, @"channels\.vlive\.tv\/(?<id>.+?)(:?\/|$)", async env => {
+                await WithContext(env, "cannot get vlive channel").TryEach("id", async (id, ctx) => {
                     var vlive = await GetVLiveChannel(id);
                     await Noye.Say(env, vlive);
                 });
             });
 
-            Noye.Passive(@"tv\.naver\.com\/v\/(?<id>\d+)\/?", async env => {
-                await env.TryEach("id", WithContext(env, "cannot get naver video"), async (id, ctx) => {
+            Noye.Passive(this, @"tv\.naver\.com\/v\/(?<id>\d+)\/?", async env => {
+                await WithContext(env, "cannot get naver video").TryEach("id", async (id, ctx) => {
                     var title = await GetTitle("http://tv.naver.com/v/" + id, NAVER_RE);
                     await Noye.Say(env, title);
                 });

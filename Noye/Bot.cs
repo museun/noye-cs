@@ -23,7 +23,7 @@
             }
         }
 
-        public async Task Say(Envelope env, string data, Context ctx = null) {
+        public async Task Say(Envelope env, string data, Context ctx) {
             if (!string.IsNullOrWhiteSpace(data)) await proto.Privmsg(env.Target, data);
             else Warn(ctx);
         }
@@ -33,7 +33,7 @@
             else Warn(ctx);
         }
 
-        public async Task Emote(Envelope env, string msg, Context ctx = null) {
+        public async Task Emote(Envelope env, string msg, Context ctx) {
             if (!string.IsNullOrWhiteSpace(msg)) await proto.Action(env.Target, msg);
             else Warn(ctx);
         }

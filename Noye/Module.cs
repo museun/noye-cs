@@ -23,6 +23,7 @@
 
         protected Context WithContext(Envelope env, string msg) =>
             new Context {
+                Envelope = env,
                 Message = msg,
                 Sender = env.Sender,
                 Target = env.Target,

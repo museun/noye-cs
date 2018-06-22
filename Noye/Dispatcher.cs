@@ -10,15 +10,34 @@
         private readonly List<Event> events = new List<Event>();
         private readonly List<Passive> passives = new List<Passive>();
 
-        public void Command(string trigger, Func<Envelope, Task> func) => actives.Add(new Active(trigger, func));
-        public void Passive(string pattern, Func<Envelope, Task> func) => passives.Add(new Passive(pattern, func));
-        public void Event(string command, Func<Message, Task> func) => events.Add(new Event(command, func));
+        public void Command(Module module, string trigger, Func<Envelope, Task> func) {
+            var active = new Active(module.GetType().Name, trigger, func);
+            Log.Verbose("({name}) adding active: {trigger}", active.Name, active.Trigger);
+            actives.Add(active);
+        }
+
+        public void Passive(Module module, string pattern, Func<Envelope, Task> func) {
+            var passive = new Passive(module.GetType().Name, pattern, func);
+            Log.Verbose("({name}) adding passive: {pattern}", passive.Name, passive.Pattern);
+            passives.Add(passive);
+        }
+
+        public void Event(Module module, string command, Func<Message, Task> func) {
+            var ev = new Event(module.GetType().Name, command, func);
+            Log.Verbose("({name}) adding event: {command}", ev.Name, ev.Command);
+            events.Add(ev);
+        }
 
         public async void Dispatch(Message msg) {
             var tasks = new List<Task>();
 
             // try user-triggered commands first
             if (msg.Command == "PRIVMSG") {
+                // should maybe do a shadow copy of this, or find a way to do a cheap clone/cache.
+                // or maybe extract out the sender/target parse
+                var env = new Envelope(msg);
+                Log.Debug("PRIVMSG: [{nick} @ {channel}]: {message}", env.Sender, env.Target, msg.Data.Trim());
+                
                 // try all of the !commands first.
                 tasks.AddRange(CollectActives(msg));
 
@@ -33,66 +52,63 @@
         }
 
         private IEnumerable<Task> CollectActives(Message msg) {
-            return
-                // for each active
-                from active in actives
-                    // filter to !command
-                    .Select(active => new {trigger = "!" + active.Trigger, action = active.Action})
-                    // find the ones that match
-                    .Where(active => msg.Data.StartsWith(active.trigger))
-                // create the param
-                let param = msg.Data.Substring(active.trigger.Length).Trim()
-                // create the envelope
-                let env = new Envelope(msg, string.IsNullOrWhiteSpace(param) ? null : param)
-                // create the wrapped task
-                select Task.Run(async () => {
-                        Log.Debug("running action: {trigger}", active.trigger);
-                        await active.action(env);
-                    }
-                ).ContinueWith(t => {
+            foreach (var active in actives.Where(a => msg.Data.StartsWith(a.Trigger))) {
+                async Task run() {
+                    var param = msg.Data.Substring(active.Trigger.Length).Trim();
+                    var env = new Envelope(msg, string.IsNullOrWhiteSpace(param) ? null : param);
+                    Log.Debug("({name}) running action: {trigger}", active.Name, active.Trigger);
+                    await active.Action(env);
+                }
+
+                void error(Task t) {
                     t?.Exception?.Flatten().Handle(ex => {
-                        Log.Warning(ex, "unhandled exception for {trigger}", active.trigger);
+                        Log.Warning(ex, "({name}) unhandled exception for {trigger}", active.Name, active.Trigger);
                         return true;
                     });
-                });
+                }
+
+                yield return Task.Run(run).ContinueWith(error);
+            }
         }
 
         private IEnumerable<Task> CollectPassives(Message msg) {
-            return
-                // for each passive
-                from passive in passives
-                    // filter matching regex
-                    .Where(passive => passive.Pattern.IsMatch(msg.Data))
-                // create matches
-                let matches = new Matches(passive.Pattern, msg.Data)
-                // create the envelople
-                let env = new Envelope(msg, matches: matches)
-                // create the wrapped task
-                select Task.Run(async () => {
-                    Log.Debug("running passive: {pattern}", passive.Pattern);
+            foreach (var passive in passives.Where(p => p.Pattern.IsMatch(msg.Data))) {
+                async Task run() {
+                    var env = new Envelope(msg, matches: new Matches(passive.Pattern, msg.Data));
+                    Log.Debug("({name}) running passive: {pattern}", passive.Name, passive.Pattern);
                     await passive.Action(env);
-                }).ContinueWith(t => {
+                }
+
+                void error(Task t) {
                     t?.Exception?.Flatten().Handle(ex => {
-                        Log.Warning(ex, "unhandled exception for {pattern}", passive.Pattern.ToString());
+                        Log.Warning(ex, "({name}) unhandled exception for {pattern}", passive.Name,
+                            passive.Pattern.ToString());
                         return true;
                     });
-                });
+                }
+
+                yield return Task.Run(run).ContinueWith(error);
+            }
         }
 
         private IEnumerable<Task> CollectEvents(Message msg) {
-            return events
-                // filter matching commands
-                .Where(ev => ev.Command == msg.Command)
-                // then create a list of wrapped tasks
-                .Select(evnt => Task.Run(async () => {
-                    Log.Debug("running event: {event}", evnt.Command);
-                    await evnt.Action(msg);
-                }).ContinueWith(t => {
+            Task filter(Event ev) {
+                async Task run() {
+                    Log.Debug("({name}) running event: {event}", ev.Name, ev.Command);
+                    await ev.Action(msg);
+                }
+
+                void error(Task t) {
                     t?.Exception?.Flatten().Handle(ex => {
-                        Log.Warning(ex, "unhandled exception for {@msg}", msg);
+                        Log.Warning(ex, "({name}) unhandled exception for {@msg}", ev.Name, msg);
                         return true;
                     });
-                }));
+                }
+
+                return Task.Run(run).ContinueWith(error);
+            }
+
+            return events.Where(ev => ev.Command == msg.Command).Select(filter);
         }
     }
 }

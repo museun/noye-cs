@@ -10,8 +10,8 @@
         }
 
         public override void Register() {
-            Noye.Passive(@"twitch\.tv\/(?!videos)(?<stream>\w+)", async env => {
-                await env.TryEach("stream", WithContext(env, "cannot find stream"), async (name, ctx) => {
+            Noye.Passive(this, @"twitch\.tv\/(?!videos)(?<stream>\w+)", async env => {
+                await WithContext(env, "cannot find stream").TryEach("stream", async (name, ctx) => {
                     var twitch = await Lookup(name);
                     await Noye.Say(env, twitch, ctx);
                 });

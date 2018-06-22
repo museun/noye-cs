@@ -6,8 +6,8 @@
         public BigFile(INoye noye) : base(noye) { }
 
         public override void Register() {
-            Noye.Passive(PATTERN, async env => {
-                await env.TryEach("link", WithContext(env, "filename was empty"), async (link,ctx) => {
+            Noye.Passive(this, PATTERN, async env => {
+                await WithContext(env, "fiilename was empty").TryEach("link", async (link, ctx) => {
                     var headers = await HttpExtensions.GetHeaders(link);
                     var filename = headers?.ContentDisposition?.FileNameStar;
                     await Noye.Say(env, filename, ctx);

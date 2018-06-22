@@ -28,7 +28,6 @@
     public abstract class AbstractServe<T> : IDisposable, IServe<T> where T : class, IItem {
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
         private readonly TimeSpan delay = TimeSpan.FromSeconds(1 * 30); // every 30 seconds do a sweep
-        private readonly Random rand = new Random(DateTime.Now.Millisecond);
 
         protected readonly ConcurrentDictionary<string, T> store = new ConcurrentDictionary<string, T>();
 
@@ -60,7 +59,7 @@
 
         public virtual string GenerateId() {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxy";
-            return string.Join("", Enumerable.Repeat(chars, Length).Select(s => s[rand.Next(s.Length)]));
+            return string.Join("", Enumerable.Repeat(chars, Length).Select(s => s[ThreadLocalRandom.Next(s.Length)]));
         }
 
         public string Store(T item) {

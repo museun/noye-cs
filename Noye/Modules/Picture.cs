@@ -6,15 +6,15 @@
     using System.Linq;
     using System.Web;
     using Nancy;
+    using Serilog;
 
     public class PictureModule : Module {
-        private readonly Dictionary<string, IReadOnlyList<string>> cache =
-            new Dictionary<string, IReadOnlyList<string>>();
+        private readonly ConcurrentDictionary<string, IReadOnlyList<string>> cache =
+            new ConcurrentDictionary<string, IReadOnlyList<string>>();
 
-        private readonly Dictionary<string, ItemContext> pictures =
-            new Dictionary<string, ItemContext>();
+        private readonly ConcurrentDictionary<string, ItemContext> pictures =
+            new ConcurrentDictionary<string, ItemContext>();
 
-        private readonly Random random = new Random(DateTime.Now.Millisecond);
         private readonly IReadOnlyList<FileSystemWatcher> watchers;
 
         public PictureModule(INoye noye) : base(noye) {
@@ -49,13 +49,14 @@
         public override void Register() {
             var host = Noye.GetHostAddress();
 
-            Noye.Command("pictures", async env => {
+            Noye.Command(this, "pictures", async env => {
                 var list = pictures.Select(p => $"!{p.Key}");
                 await Noye.Reply(env, string.Join(" ", list));
             });
 
             foreach (var kv in pictures) {
-                Noye.Command(kv.Value.Item.Command, async env => {
+                Log.Debug("adding pictures command: {key}={val}", kv.Key, kv.Value.Name);
+                Noye.Command(this, kv.Value.Item.Command, async env => {
                     // TODO write a command type so this doesn't have be done here
                     if (env.Param != null && (env.Param == "list" || env.Param.StartsWith("chance"))) {
                         return;
@@ -69,13 +70,13 @@
                     }
                 });
 
-                Noye.Event("PRIVMSG", async message => {
+                Noye.Event(this, "PRIVMSG", async message => {
                     var chan = message.Parameters[0];
                     if (kv.Value.Item.BannedChannels.Any(e => e == chan)) {
                         return;
                     }
 
-                    if (random.Next(0, kv.Value.Item.Chance) == 0) {
+                    if (ThreadLocalRandom.Next(0, kv.Value.Item.Chance) == 0) {
                         var file = SelectFileFor(kv.Value);
                         var ps = Noye.Resolve<PictureServe>();
                         if (ps.mapping.TryGetValue(kv.Key, out var serve)) {
@@ -85,7 +86,7 @@
                     }
                 });
 
-                Noye.Command($"{kv.Value.Item.Command} chance", async env => {
+                Noye.Command(this, $"{kv.Value.Item.Command} chance", async env => {
                     if (!await Noye.CheckAuth(env)) {
                         return;
                     }
@@ -94,7 +95,7 @@
                         var old = kv.Value.Item.Chance;
                         kv.Value.With(self => self.Item.Chance = ch);
 
-                        await Noye.Reply(env, $"changed the chance to 1/{ch} from 1/{old}");
+                        await Noye.Reply(env, $"changed {kv.Value.Name} chance to 1/{ch} from 1/{old}");
 
                         var conf = Configuration.Load();
                         conf.Module.Pictures.Directorties[kv.Key].Chance = ch;
@@ -106,7 +107,7 @@
                     await Noye.Reply(env, $"current chance: 1/{kv.Value.Item.Chance}");
                 });
 
-                Noye.Command($"{kv.Value.Item.Command} list", async env => {
+                Noye.Command(this, $"{kv.Value.Item.Command} list", async env => {
                     if (!await Noye.CheckAuth(env)) {
                         return;
                     }
@@ -151,7 +152,7 @@
                     cache[pic.Item.Directory] = list;
                 }
                 else {
-                    cache.Add(pic.Item.Directory, list);
+                    cache.TryAdd(pic.Item.Directory, list);
                 }
 
                 pic.With(self => self.Dirty = false);
@@ -160,7 +161,7 @@
                 list = cache[pic.Item.Directory];
             }
 
-            return list[random.Next(list.Count)];
+            return list[ThreadLocalRandom.Next(list.Count)];
         }
 
         private static IEnumerable<string> GetPreviousFor(InnerServe inner) {

@@ -10,10 +10,10 @@
         }
 
         public override void Register() {
-            Noye.Passive(@"(sendanywhe\.re|send-anywhere\.com)/.*?(?<id>[^/]*$)", async env => {
+            Noye.Passive(this, @"(sendanywhe\.re|send-anywhere\.com)/.*?(?<id>[^/]*$)", async env => {
                 var req = $"?device_key={apiKey}&mode=list&start_pos=0&end_pos=30";
 
-                await env.TryEach("id", WithContext(env, "couldn't get info for link"), async (id, ctx) => {
+                await WithContext(env, "couldn't get info for link").TryEach("id", async (id, ctx) => {
                     var info = await httpClient.GetAnonymous(
                         $"https://send-anywhere.com/web/key/inquiry/{id}?device_key={apiKey}", new {
                             key = default(string),

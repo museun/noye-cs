@@ -68,6 +68,7 @@
 
         public override async Task Send(string raw) {
             if (string.IsNullOrWhiteSpace(raw)) {
+                Log.Warning("tryied to send an empty line");
                 return;
             }
 
@@ -102,6 +103,7 @@
                     line = line.Trim();
                 }
                 catch (IOException) {
+                    Log.Verbose("caught io exception in message loop, breaking.");
                     yield break;
                 }
 
