@@ -24,16 +24,23 @@
         }
 
         public async Task Say(Envelope env, string data, Context ctx) {
-            if (!string.IsNullOrWhiteSpace(data)) await proto.Privmsg(env.Target, data);
+            if (!string.IsNullOrWhiteSpace(data)) {
+                await proto.Privmsg(env.Target, data);
+                Log.Debug("({class}) [{channel}] saying '{data}'", ctx?.Name ?? "unknown", env.Target, data);
+            }
             else Warn(ctx);
         }
 
         public async Task Reply(Envelope env, string data, Context ctx = null) {
-            if (!string.IsNullOrWhiteSpace(data)) await proto.Privmsg(env.Target, $"{env.Sender}: {data}");
+            if (!string.IsNullOrWhiteSpace(data)) {
+                await proto.Privmsg(env.Target, $"{env.Sender}: {data}");
+                Log.Debug("({class}) [{name} @ {channel}] reply '{data}'", ctx?.Name ?? "unknown", env.Sender,
+                    env.Target, data);
+            }
             else Warn(ctx);
         }
 
-        public async Task Emote(Envelope env, string msg, Context ctx) {
+        public async Task Emote(Envelope env, string msg, Context ctx = null) {
             if (!string.IsNullOrWhiteSpace(msg)) await proto.Action(env.Target, msg);
             else Warn(ctx);
         }
@@ -47,11 +54,12 @@
         public async Task<bool> CheckAuth(Envelope env) {
             var conf = Configuration.Load();
             if (conf.Server.Owners.Contains(env.Sender)) return true;
+            await Emote(env, "lemme check something");
             await Reply(env, "you cannot do that");
             return false;
         }
 
-        private void Warn(Context ctx) {
+        private static void Warn(Context ctx) {
             if (ctx != null) {
                 Log.Warning("{ctx}", ctx);
             }

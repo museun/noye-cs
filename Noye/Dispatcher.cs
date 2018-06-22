@@ -93,10 +93,7 @@
 
         private IEnumerable<Task> CollectEvents(Message msg) {
             Task filter(Event ev) {
-                async Task run() {
-                    Log.Debug("({name}) running event: {event}", ev.Name, ev.Command);
-                    await ev.Action(msg);
-                }
+                async Task run() => await ev.Action(msg);
 
                 void error(Task t) {
                     t?.Exception?.Flatten().Handle(ex => {
