@@ -5,6 +5,7 @@
     using System.Globalization;
     using System.Linq;
     using System.Net.Http;
+    using System.Net.Http.Headers;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -211,10 +212,10 @@
         }
     }
 
-    public class HttpClient : System.Net.Http.HttpClient {
-        public HttpClient() {}
+    public class NoyeHttpClient : HttpClient {
+        public NoyeHttpClient() { }
 
-        public HttpClient(HttpMessageHandler handler) : base(handler) { }
+        public NoyeHttpClient(HttpMessageHandler handler) : base(handler) { }
 
         public async Task<T> GetAnonymous<T>(HttpRequestMessage req, T type) {
             var resp = await SendAsync(req);
@@ -236,6 +237,19 @@
         public async Task<T> Get<T>(string url, T type) {
             var json = await GetStringAsync(url);
             return JsonConvert.DeserializeObject<T>(json);
+        }
+
+        public async Task<HttpContentHeaders> GetHeaders(string url) {
+            var req = new HttpRequestMessage(HttpMethod.Get, url);
+            try {
+                var resp = await SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+                var headers = resp.Content.Headers;
+                return headers;
+            }
+            catch (HttpRequestException) { }
+            catch (TaskCanceledException) { }
+
+            return null;
         }
     }
 }

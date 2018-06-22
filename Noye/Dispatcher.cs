@@ -33,16 +33,18 @@
 
             // try user-triggered commands first
             if (msg.Command == "PRIVMSG") {
-                // should maybe do a shadow copy of this, or find a way to do a cheap clone/cache.
-                // or maybe extract out the sender/target parse
-                var env = new Envelope(msg);
-                Log.Debug("PRIVMSG: [{nick} @ {channel}]: {message}", env.Sender, env.Target, msg.Data.Trim());
-                
                 // try all of the !commands first.
                 tasks.AddRange(CollectActives(msg));
 
                 // then the regex commands
                 tasks.AddRange(CollectPassives(msg));
+
+                if (tasks.Count > 0) {
+                    // should maybe do a shadow copy of this, or find a way to do a cheap clone/cache.
+                    // or maybe extract out the sender/target parse
+                    var env = new Envelope(msg);
+                    Log.Debug("PRIVMSG: [{nick} @ {channel}]: {message}", env.Sender, env.Target, msg.Data.Trim());
+                }
             }
 
             // finally the catch all matched events

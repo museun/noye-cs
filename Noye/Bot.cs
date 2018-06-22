@@ -51,11 +51,11 @@
 
         public T Resolve<T>() => container.Resolve<T>();
 
-        public async Task<bool> CheckAuth(Envelope env) {
+        public async Task<bool> CheckAuth(Envelope env, Context ctx = null) {
             var conf = Configuration.Load();
             if (conf.Server.Owners.Contains(env.Sender)) return true;
-            await Emote(env, "checks something");
-            await Reply(env, "you cannot do that");
+            await Emote(env, "checks something", ctx);
+            await Reply(env, "you cannot do that", ctx);
             return false;
         }
 

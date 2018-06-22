@@ -12,7 +12,7 @@
         void Passive(Module module, string pattern, Func<Envelope, Task> func);
         void Event(Module module, string command, Func<Message, Task> func);
 
-        Task<bool> CheckAuth(Envelope env);
+        Task<bool> CheckAuth(Envelope env, Context ctx = null);
 
         string GetHostAddress();
         T Resolve<T>();

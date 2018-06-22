@@ -10,7 +10,7 @@
                 var sizes = new List<KeyValuePair<int, string>>();
                 // TODO maybe figure out env.TryEach for this.
                 foreach (var link in env.Matches.Get("link").Select((m, i) => new {Index = i + 1, Match = m})) {
-                    var headers = await HttpExtensions.GetHeaders(link.Match);
+                    var headers = await httpClient.GetHeaders(link.Match);
                     var length = headers?.ContentLength;
                     if (length > 10 * 1024 * 1024) {
                         sizes.Add(new KeyValuePair<int, string>(link.Index, length.Value.AsFileSize()));

@@ -164,7 +164,7 @@
             }
         }
 
-        private class Client : HttpClient {
+        private class Client : NoyeHttpClient {
             private const string BaseUri = "https://www.googleapis.com/youtube/v3/";
             private readonly string apikey;
 
