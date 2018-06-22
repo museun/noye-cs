@@ -11,7 +11,7 @@
         }
 
         public async Task Action(string target, string data) {
-            await Send($"PRIVMSG {target} :\\1ACTION {data}\\1");
+            await Send($"PRIVMSG {target} :{(char)1}ACTION {data}{(char)1}");
         }
 
         public async Task Register(string nick, string user, string real) {
