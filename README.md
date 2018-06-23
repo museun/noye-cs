@@ -1,6 +1,8 @@
 # noye
 an irc bot.
 
+# this is out of date. pending corrections.
+
 ## how to write modules
 ```csharp
 // must inherit from the Noye.Module abstract class
