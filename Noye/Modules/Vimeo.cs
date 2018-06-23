@@ -12,7 +12,7 @@
                     var req = new HttpRequestMessage(HttpMethod.Get, $"https://player.vimeo.com/video/{vid}/config");
                     req.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("identity"));
 
-                    var json = await httpClient.GetAnonymous(req, new {
+                    var video = (await httpClient.GetAnonymous(req, new {
                         video = new {
                             duration = default(long),
                             id = default(long),
@@ -21,8 +21,7 @@
                                 name = default(string)
                             }
                         }
-                    });
-                    var video = json?.video;
+                    }))?.video;
                     if (video == null) {
                         return;
                     }

@@ -37,7 +37,6 @@
                     durationMillis = default(long)
                 }
             });
-
             if (resp == null) {
                 return null;
             }
@@ -46,8 +45,8 @@
             sb.Append($"[{resp.fileSize.AsFileSize()}] {resp.title}");
             if (resp.videoMediaMetadata != null) {
                 var time = TimeSpan.FromMilliseconds(resp.videoMediaMetadata.durationMillis).StripMilliseconds();
-                sb.Append(
-                    $" | {resp.videoMediaMetadata.width}x{resp.videoMediaMetadata.height} · {time.AsShortTime()}");
+                sb.Append($" | {resp.videoMediaMetadata.width}x{resp.videoMediaMetadata.height}");
+                sb.Append($" · {time.AsShortTime()}");
             }
 
             return sb.ToString();

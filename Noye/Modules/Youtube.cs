@@ -71,6 +71,7 @@
                 }
             });
 
+            var ctx = WithContext(env, "get youtube video");
             foreach (var video in videos.items) {
                 var title = video.snippet.title;
                 var channel = video.snippet.channelTitle;
@@ -78,19 +79,20 @@
                 if (video.snippet.liveBroadcastContent == "none") {
                     var duration = XmlConvert.ToTimeSpan(video.contentDetails.duration).AsShortTime();
                     var views = video.statistics.viewCount.WithCommas();
-                    await Noye.Say(env, $"{title} | {channel} · {duration} · {views} | https://youtu.be/{video.id}");
+                    await Noye.Say(env, $"{title} | {channel} · {duration} · {views} | https://youtu.be/{video.id}",
+                        ctx);
                 }
 
                 if (video.snippet.liveBroadcastContent == "live") {
                     var viewers = video.liveStreamingDetails.concurrentViewers.WithCommas();
                     await Noye.Say(env,
-                        $"(LIVE): {title} | {channel} · {viewers} watching | https://youtu.be/{video.id}");
+                        $"(LIVE): {title} | {channel} · {viewers} watching | https://youtu.be/{video.id}", ctx);
                 }
 
                 if (video.snippet.liveBroadcastContent == "upcoming") {
                     var start = (video.liveStreamingDetails.scheduledStartTime - DateTime.UtcNow).StripMilliseconds()
                         .RelativeTime();
-                    await Noye.Say(env, $"(Upcoming: {start}) {title} | {channel} | https://youtu.be/{video.id}");
+                    await Noye.Say(env, $"(Upcoming: {start}) {title} | {channel} | https://youtu.be/{video.id}", ctx);
                 }
             }
         }
@@ -117,6 +119,8 @@
                     }
                 });
 
+                var ctx = WithContext(env, "get youtube channel");
+
                 foreach (var item in json.items) {
                     var id = item.id;
                     var title = item.snippet.title;
@@ -125,12 +129,13 @@
 
                     if (item.statistics.hiddenSubscriberCount) {
                         await Noye.Say(env,
-                            $"{title} | {videos} videos. {views} views | https://youtube.com/channel/{id}");
+                            $"{title} | {videos} videos. {views} views | https://youtube.com/channel/{id}", ctx);
                     }
                     else {
                         var subs = item.statistics.subscriberCount.WithCommas();
                         await Noye.Say(env,
-                            $"{title} | {videos} videos. {views} views · {subs} subscribers | https://youtube.com/channel/{id}");
+                            $"{title} | {videos} videos. {views} views · {subs} subscribers | https://youtube.com/channel/{id}",
+                            ctx);
                     }
                 }
             }

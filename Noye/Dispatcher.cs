@@ -38,7 +38,6 @@
 
                 // then the regex commands
                 tasks.AddRange(CollectPassives(msg));
-
                 if (tasks.Count > 0) {
                     // should maybe do a shadow copy of this, or find a way to do a cheap clone/cache.
                     // or maybe extract out the sender/target parse
@@ -50,53 +49,33 @@
             // finally the catch all matched events
             tasks.AddRange(CollectEvents(msg));
 
+            tasks.ForEach(t => t.Start());
             await Task.WhenAll(tasks);
         }
 
         private IEnumerable<Task> CollectActives(Message msg) {
+            var tasks = new List<Task>();
             foreach (var active in actives.Where(a => msg.Data.StartsWith(a.Trigger))) {
-                async Task run() {
-                    var param = msg.Data.Substring(active.Trigger.Length).Trim();
-                    var env = new Envelope(msg, string.IsNullOrWhiteSpace(param) ? null : param);
-                    Log.Debug("({name}) running action: {trigger}", active.Name, active.Trigger);
-                    await active.Action(env);
-                }
-
-                void error(Task t) {
-                    t?.Exception?.Flatten().Handle(ex => {
-                        Log.Warning(ex, "({name}) unhandled exception for {trigger}", active.Name, active.Trigger);
-                        return true;
-                    });
-                }
-
-                yield return Task.Run(run).ContinueWith(error);
+                var param = msg.Data.Substring(active.Trigger.Length).Trim();
+                var env = new Envelope(msg, string.IsNullOrWhiteSpace(param) ? null : param);
+                tasks.Add(new Task(async () => await active.Action(env)));
             }
+
+            return tasks;
         }
 
         private IEnumerable<Task> CollectPassives(Message msg) {
+            var tasks = new List<Task>();
             foreach (var passive in passives.Where(p => p.Pattern.IsMatch(msg.Data))) {
-                async Task run() {
-                    var env = new Envelope(msg, matches: new Matches(passive.Pattern, msg.Data));
-                    Log.Debug("({name}) running passive: {pattern}", passive.Name, passive.Pattern);
-                    await passive.Action(env);
-                }
-
-                void error(Task t) {
-                    t?.Exception?.Flatten().Handle(ex => {
-                        Log.Warning(ex, "({name}) unhandled exception for {pattern}", passive.Name,
-                            passive.Pattern.ToString());
-                        return true;
-                    });
-                }
-
-                yield return Task.Run(run).ContinueWith(error);
+                var env = new Envelope(msg, matches: new Matches(passive.Pattern, msg.Data));
+                tasks.Add(new Task(async () => await passive.Action(env)));
             }
+
+            return tasks;
         }
 
         private IEnumerable<Task> CollectEvents(Message msg) {
             Task filter(Event ev) {
-                async Task run() => await ev.Action(msg);
-
                 void error(Task t) {
                     t?.Exception?.Flatten().Handle(ex => {
                         Log.Warning(ex, "({name}) unhandled exception for {@msg}", ev.Name, msg);
@@ -104,7 +83,7 @@
                     });
                 }
 
-                return Task.Run(run).ContinueWith(error);
+                return new Task(async () => await ev.Action(msg).ContinueWith(error));
             }
 
             return events.Where(ev => ev.Command == msg.Command).Select(filter);

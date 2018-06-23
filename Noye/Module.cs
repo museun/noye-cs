@@ -2,7 +2,7 @@
     using System;
 
     public abstract class Module : IDisposable {
-        protected HttpClient httpClient = new HttpClient();
+        protected NoyeHttpClient httpClient = new NoyeHttpClient();
 
         protected Module(INoye noye) {
             Noye = noye;

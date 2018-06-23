@@ -1,7 +1,6 @@
 ﻿namespace Noye.Modules {
     using System.Text;
     using System.Threading.Tasks;
-    using Newtonsoft.Json;
 
     public class Gfycat : Module {
         public Gfycat(INoye noye) : base(noye) { }
@@ -16,8 +15,7 @@
         }
 
         private async Task<string> LookupItem(string id) {
-            var json = await httpClient.GetStringAsync($"http://gfycat.com/cajax/get/{id}");
-            var item = JsonConvert.DeserializeAnonymousType(json, new {
+            var item = (await httpClient.GetAnonymous($"http://gfycat.com/cajax/get/{id}", new {
                 gfyItem = new {
                     title = default(string),
                     description = default(string),
@@ -28,7 +26,7 @@
                     height = default(long),
                     nsfw = default(string)
                 }
-            })?.gfyItem;
+            }))?.gfyItem;
             if (item == null) {
                 return null;
             }

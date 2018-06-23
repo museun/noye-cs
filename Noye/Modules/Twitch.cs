@@ -20,7 +20,7 @@
 
         // @formatter:off
         private async Task<string> Lookup( string name) {
-            var result = await httpClient.GetAnonymous(getLogin(name), new {
+            var result = await httpClient.GetAnonymous(LoginUrl(name), new {
                 users = new[] { new { _id = "", display_name = "", name = "" } }
             });
 
@@ -30,7 +30,7 @@
             }
 
             var uid = result.users[0]._id;
-            var stream = await httpClient.GetAnonymous(getStream(uid), new {
+            var stream = await httpClient.GetAnonymous(StreamUrl(uid), new {
                 data = new[] { new { user_id = "", game_id = "", title = "" } }
             });
 
@@ -39,7 +39,7 @@
             }
 
             var gid = stream.data[0].game_id;
-            var game = await httpClient.GetAnonymous(getGames(gid), new {
+            var game = await httpClient.GetAnonymous(GamesUrl(gid), new {
                 data = new[] { new { name = "" } }
             });
 
@@ -53,10 +53,8 @@
         }
         // @formatter:on
 
-        private static string getLogin(string name) => "https://api.twitch.tv/kraken/users?login=" + name;
-
-        private static string getStream(string id) => "https://api.twitch.tv/helix/streams?user_id=" + id;
-
-        private static string getGames(string id) => "https://api.twitch.tv/helix/games?id=" + id;
+        private static string LoginUrl(string name) => "https://api.twitch.tv/kraken/users?login=" + name;
+        private static string StreamUrl(string id) => "https://api.twitch.tv/helix/streams?user_id=" + id;
+        private static string GamesUrl(string id) => "https://api.twitch.tv/helix/games?id=" + id;
     }
 }

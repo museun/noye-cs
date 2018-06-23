@@ -36,17 +36,16 @@
             var doc = parser.Parse(body);
             var name = doc.QuerySelector("h1.post-title").Text();
 
-            var json = await httpClient.GetAnonymous($"https://api.imgur.com/3/image/{id}", new {
+            var album = (await httpClient.GetAnonymous($"https://api.imgur.com/3/image/{id}", new {
                 data = new {
                     title = default(string),
                     section = default(string)
                 }
-            });
-            if (json?.data == null) {
+            }))?.data;
+            if (album == null) {
                 return null;
             }
 
-            var album = json.data;
             if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(album.title)) {
                 return null;
             }
@@ -67,7 +66,7 @@
         }
 
         private async Task<string> LookupAlbum(string id) {
-            var json = await httpClient.GetAnonymous($"https://api.imgur.com/3/album/{id}", new {
+            var album = (await httpClient.GetAnonymous($"https://api.imgur.com/3/album/{id}", new {
                 data = new {
                     title = default(string),
                     description = default(string),
@@ -77,13 +76,11 @@
                     nsfw = default(bool?),
                     section = default(string)
                 }
-            });
-            if (json?.data == null) {
+            }))?.data;
+            if (album == null) {
                 return null;
             }
-
-            var album = json.data;
-
+            
             if ((string.IsNullOrWhiteSpace(album.title) || string.IsNullOrWhiteSpace(album.description)) &&
                 album.images_count == 1) {
                 return null;
