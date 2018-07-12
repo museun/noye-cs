@@ -104,6 +104,7 @@
     <Compile Include="Modules\Imgur.cs" />
     <Compile Include="Modules\Instagram.cs" />
     <Compile Include="Modules\LinkSize.cs" />
+    <Compile Include="Modules\Markov.cs" />
     <Compile Include="Modules\Naver.cs" />
     <Compile Include="Modules\Repost.cs" />
     <Compile Include="Modules\Picture.cs" />

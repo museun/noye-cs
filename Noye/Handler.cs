@@ -30,7 +30,8 @@
     public class Passive {
         public Passive(string name, string pattern, Func<Envelope, Task> action) {
             Name = name;
-            Pattern = new Regex(pattern, RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture);
+            Pattern = new Regex(pattern,
+                RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture);
 
             Action = async env => {
                 void error(Task t) {
