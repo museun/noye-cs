@@ -11,6 +11,7 @@
         public UserConfig User { get; set; } = new UserConfig();
         public HttpConfig Http { get; set; } = new HttpConfig();
         public RestartConfig Restart { get; set; } = new RestartConfig();
+        public List<string> DisabledModules { get; set; } = new List<string>();
         public ModuleConfig Module { get; set; } = new ModuleConfig();
 
         public static Configuration Load() => Toml.ReadFile<Configuration>("noye.toml");
@@ -45,7 +46,7 @@
         public string Username { get; set; } = default(string);
         public string Password { get; set; } = default(string);
     }
-
+    
     public class ModuleConfig {
         public YoutubeConfig Youtube { get; internal set; } = new YoutubeConfig();
         public GDriveConfig GDrive { get; internal set; } = new GDriveConfig();
@@ -87,6 +88,11 @@
     public class ImgurConfig : ApiKeyConfig { }
 
     public class TwitchConfig : ApiKeyConfig { }
+
+    public class MarkovConfig : IModuleConfig {
+        public string Address { get; set; } = "http://localhost:7878";
+        public Dictionary<string, float> ResponseRate { get; set; }
+    }
 
     public class PicturesConfig : IModuleConfig {
         public Dictionary<string, Item> Directorties { get; internal set; } = default(Dictionary<string, Item>);

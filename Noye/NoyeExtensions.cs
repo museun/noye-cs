@@ -20,6 +20,16 @@
             }
         }
 
+        public static string Replace(this string source, string old, string replace, StringComparison comp) {
+            var index = source.IndexOf(old, comp);
+            if (index >= 0) {
+                source = source.Remove(index, old.Length);
+                source = source.Insert(index, replace);
+                return source;
+            }
+            return source;
+        }
+
         public static string Slice(this string data, int begin, int end) {
             if (end < 0) {
                 end = data.Length;

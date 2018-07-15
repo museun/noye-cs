@@ -19,6 +19,11 @@
                 {double.MaxValue, x => $"{x.TotalDays / 365:F0} years"}
             };
 
+        public static string WithCommas(this ulong n)
+        {
+            return n.ToString("n0");
+        }
+
         public static string WithCommas(this long n) {
             return n.ToString("n0");
         }

@@ -72,8 +72,13 @@
                 return;
             }
 
+            var last = DateTime.Now;
             foreach (var line in Split(raw)) {
                 try {
+                    if (last - DateTime.Now < TimeSpan.FromMilliseconds(100)) {
+                        await Task.Delay(150);
+                    }
+
                     Log.Verbose("> {line}", line.Trim());
                     await writer.WriteAsync(line);
                 }

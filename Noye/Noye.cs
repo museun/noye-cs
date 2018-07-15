@@ -30,7 +30,7 @@
             });
 
             bot = new Bot(client, container);
-            modules = CreateModules(bot);
+            modules = CreateModules(bot, config);
 
             Console.CancelKeyPress += async (s, e) => {
                 Log.Verbose("got a Cancel event");
@@ -59,15 +59,23 @@
                 foreach (var msg in messages) {
                     bot.Dispatch(msg);
                 }
+
                 Log.Information("done reading messages");
             }
         }
 
-        private static List<Module> CreateModules(Bot bot) {
+        private static List<Module> CreateModules(Bot bot, Configuration config) {
             var list = new List<Module>();
+            var disabled = config.DisabledModules;
+
             foreach (var module in Assembly.GetAssembly(typeof(Module)).GetTypes().Where(type =>
                 type.IsClass && !type.IsAbstract && type.IsSubclassOf(typeof(Module)))) {
                 try {
+                    if (disabled.Any(e => e == module.Name)) {
+                        Log.Information("disabled module: {type}", module);
+                        continue;
+                    }
+
                     list.Add((Module) Activator.CreateInstance(module, bot));
                     Log.Information("loading module: {type}", module);
                 }
